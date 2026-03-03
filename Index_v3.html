@@ -729,11 +729,11 @@
   /* ══ Verificar sesión Supabase ══════════════════════════════════════ */
   (async function checkSession() {
     const { data: { session } } = await db.auth.getSession();
-    if (!session) { window.location.href = 'Auth.html'; return; }
+    if (!session) { window.location.href = 'Index.html'; return; }
     const { data: perfil } = await db.from('perfiles')
       .select('rol,nombre_completo,activo').eq('id', session.user.id).single();
     if (!perfil || !perfil.activo) {
-      await db.auth.signOut(); window.location.href = 'Auth.html'; return;
+      await db.auth.signOut(); window.location.href = 'Index.html'; return;
     }
     sessionStorage.setItem('userRol',  perfil.rol);
     sessionStorage.setItem('userName', perfil.nombre_completo);
@@ -785,7 +785,7 @@
   async function doLogout() {
     try { await db.auth.signOut(); } catch(e) {}
     sessionStorage.clear();
-    window.location.href = 'Auth.html';
+    window.location.href = 'Index.html';
   }
 
   /* ══════ Navegación ══════ */

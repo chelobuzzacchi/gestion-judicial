@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reportes · Gestión Judicial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- SheetJS para Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- jsPDF para PDF -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #f4f6fb;
+    --surface:   #ffffff;
+    --surface2:  #f8f9fc;
+    --border:    #e4e8f0;
+    --border2:   #d0d6e4;
+    --navy:      #1a2640;
+    --navy2:     #253350;
+    --accent:    #2f6de1;
+    --accent-h:  #1d55c0;
+    --accent-s:  #e8f0fd;
+    --danger:    #e0362a;
+    --danger-s:  #fdf0ef;
+    --success:   #1a9e6b;
+    --success-s: #edf8f3;
+    --warn:      #d97706;
+    --warn-s:    #fef9ec;
+    --purple:    #7c3aed;
+    --purple-s:  #f3f0ff;
+    --teal:      #0891b2;
+    --teal-s:    #ecfeff;
+    --text:      #1a2640;
+    --text2:     #4a5568;
+    --text3:     #8896a8;
+    --radius:    12px;
+    --radius-lg: 18px;
+    --shadow:    0 2px 12px rgba(26,38,64,.08);
+    --shadow-lg: 0 8px 40px rgba(26,38,64,.16);
+  }
+
+  body { background: var(--bg); font-family: 'Outfit', sans-serif; color: var(--text); min-height: 100vh; }
+  .app { max-width: 100%; padding: 20px 20px 60px; }
+
+  /* ── Header ── */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .page-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--navy); }
+  .page-header p  { font-size: .78rem; color: var(--text3); margin-top: 2px; }
+  .export-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: var(--radius); font-family: 'Outfit', sans-serif; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .btn-sm  { padding: 8px 16px; font-size: .82rem; }
+  .btn-md  { padding: 10px 20px; font-size: .86rem; }
+  .btn-navy    { background: var(--navy);    color: #fff; }
+  .btn-navy:hover    { background: var(--navy2); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #0e7a52; }
+  .btn-accent  { background: var(--accent);  color: #fff; box-shadow: 0 3px 10px rgba(47,109,225,.25); }
+  .btn-accent:hover  { background: var(--accent-h); }
+  .btn-outline { background: transparent; color: var(--text2); border: 1.5px solid var(--border2); }
+  .btn-outline:hover { background: var(--surface2); }
+  .btn-purple  { background: var(--purple);  color: #fff; }
+  .btn-purple:hover  { background: #6d28d9; }
+  .btn-danger  { background: var(--danger);  color: #fff; }
+  .btn-danger:hover  { background: #c0271d; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── KPI cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.blue::before   { background: var(--accent); }
+  .kpi-card.green::before  { background: var(--success); }
+  .kpi-card.red::before    { background: var(--danger); }
+  .kpi-card.warn::before   { background: var(--warn); }
+  .kpi-card.purple::before { background: var(--purple); }
+  .kpi-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .kpi-icon.blue   { background: var(--accent-s);  color: var(--accent); }
+  .kpi-icon.green  { background: var(--success-s); color: var(--success); }
+  .kpi-icon.red    { background: var(--danger-s);  color: var(--danger); }
+  .kpi-icon.warn   { background: var(--warn-s);    color: var(--warn); }
+  .kpi-icon.purple { background: var(--purple-s);  color: var(--purple); }
+  .kpi-value { font-size: 2rem; font-weight: 700; color: var(--navy); line-height: 1; }
+  .kpi-label { font-size: .76rem; color: var(--text3); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+  .kpi-sub   { font-size: .74rem; color: var(--text3); margin-top: 2px; }
+
+  /* ── Filter panel ── */
+  .filter-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .filter-title { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text3); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .ff { display: flex; flex-direction: column; gap: 4px; }
+  .ff label { font-size: .72rem; font-weight: 600; color: var(--text2); }
+  .ff input, .ff select { height: 34px; border: 1.5px solid var(--border); border-radius: 8px; padding: 0 10px; font-family: 'Outfit', sans-serif; font-size: .83rem; color: var(--text); background: var(--surface2); outline: none; transition: border-color .14s; }
+  .ff input:focus, .ff select:focus { border-color: var(--accent); background: #fff; }
+  .ff.w-text input  { width: 190px; }
+  .ff.w-date input  { width: 130px; }
+  .ff.w-sel  select { width: 160px; }
+
+  /* ── Charts grid ── */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow); }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .chart-title { font-size: .92rem; font-weight: 700; color: var(--navy); }
+  .chart-subtitle { font-size: .74rem; color: var(--text3); margin-top: 1px; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* ── Table ── */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+  .table-title { font-size: .92rem; font-weight: 700; color: var(--navy); }
+  .table-scroll { overflow-x: auto; max-height: 480px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; table-layout: auto; }
+  thead tr { background: var(--navy); position: sticky; top: 0; z-index: 5; }
+  thead th { padding: 10px 12px; font-size: .68rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,.72); white-space: nowrap; cursor: pointer; user-select: none; }
+  thead th:hover { color: #fff; }
+  thead th.sort-asc::after  { content: ' ↑'; color: #93c5fd; }
+  thead th.sort-desc::after { content: ' ↓'; color: #93c5fd; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f5f8ff; }
+  tbody tr.row-vencida { background: #fff1f0 !important; }
+  tbody tr.row-vencida:hover { background: #ffe4e3 !important; }
+  tbody td { padding: 8px 12px; font-size: .82rem; color: var(--text2); white-space: nowrap; }
+  tbody td.td-wrap { white-space: normal; min-width: 160px; }
+  tbody td:first-child { font-weight: 600; color: var(--text); }
+
+  .date-chip { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: .72rem; border-radius: 5px; padding: 2px 6px; }
+  .date-chip.llam { background: #dbeafe; color: #1d4ed8; }
+  .date-chip.venc { background: #fef3c7; color: #92400e; }
+  .date-chip.venc.vencida { background: #fee2e2; color: #991b1b; font-weight: 700; }
+  .date-chip.canc { background: #d1fae5; color: #065f46; }
+
+  .estado-badge { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .estado-badge.vigente  { background: var(--accent-s);  color: var(--accent); }
+  .estado-badge.vencido  { background: var(--danger-s);  color: var(--danger); }
+  .estado-badge.cancelado { background: var(--success-s); color: var(--success); }
+
+  .table-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; background: var(--surface2); font-size: .76rem; color: var(--text3); }
+  .table-footer strong { color: var(--text2); }
+
+  /* Paginación */
+  .pagination { display: flex; gap: 4px; }
+  .pag-btn { width: 30px; height: 30px; border-radius: 6px; border: 1.5px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .82rem; transition: all .12s; }
+  .pag-btn:hover { background: var(--surface2); }
+  .pag-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .pag-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Spinner */
+  .spinner-ring { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .65s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,.7); display: none; align-items: center; justify-content: center; border-radius: inherit; }
+
+  /* Toast */
+  #toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 7px; }
+  .toast-item { padding: 11px 15px; border-radius: 9px; font-size: .83rem; font-weight: 500; color: #fff; box-shadow: 0 5px 20px rgba(0,0,0,.16); animation: toastIn .26s ease forwards; max-width: 300px; }
+  .toast-item.success { background: #0f7a52; }
+  .toast-item.error   { background: #c0271d; }
+  @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h2>📊 Reportes y Estadísticas</h2>
+      <p>Análisis de expedientes judiciales · Chelo</p>
+    </div>
+    <div class="export-btns">
+      <div class="spinner-ring" id="spinner"></div>
+      <button class="btn btn-sm btn-success" onclick="exportarExcel()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M4 5l2 2-2 2M8 9h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Exportar Excel
+      </button>
+      <button class="btn btn-sm btn-danger" onclick="exportarPDF()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 1h6l3 3v9H3V1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 1v3h3M5 7h4M5 9.5h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Exportar PDF
+      </button>
+      <button class="btn btn-sm btn-outline" onclick="aplicarFiltros()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card blue">
+      <div class="kpi-icon blue">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 3V1M12 3V1M2 7h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-label">Total Expedientes</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-icon green">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-value" id="kpi-vigentes">—</div>
+      <div class="kpi-label">Vigentes</div>
+      <div class="kpi-sub" id="kpi-vigentes-pct"></div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-icon red">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L2 15h14L9 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 8v3M9 13v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="kpi-value" id="kpi-vencidos" style="color:var(--danger)">—</div>
+      <div class="kpi-label">Vencidos (sin cancelar)</div>
+      <div class="kpi-sub" id="kpi-vencidos-pct"></div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-icon warn">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 3V1M12 3V1M2 7h14M6 11h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="kpi-value" id="kpi-este-mes">—</div>
+      <div class="kpi-label">Ingresados este mes</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-icon purple">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M9 5v4l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-value" id="kpi-cancelados">—</div>
+      <div class="kpi-label">Cancelados</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-panel">
+    <div class="filter-title">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2.5h11l-4 5v3l-3-1.5v-1.5L1 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      Filtros del reporte
+    </div>
+    <div class="filter-row">
+      <div class="ff w-text"><label for="f-texto">Número / Carátula</label><input id="f-texto" type="text" placeholder="Buscar..."></div>
+      <div class="ff w-sel"><label for="f-juzgado">Juzgado</label>
+        <select id="f-juzgado">
+          <option value="">Todos</option>
+          <option value="13F">13F · Dra. Guerrero</option>
+          <option value="10F">10F · Dra. Alma</option>
+        </select>
+      </div>
+      <div class="ff w-sel"><label for="f-estado">Estado</label>
+        <select id="f-estado">
+          <option value="">Todos</option>
+          <option value="vigente">Vigentes</option>
+          <option value="vencido">Vencidos</option>
+          <option value="cancelado">Cancelados</option>
+        </select>
+      </div>
+      <div class="ff w-sel"><label for="f-tipo">Tipo Resolución</label>
+        <select id="f-tipo"><option value="">Todos</option></select>
+      </div>
+      <div class="ff"><label>Llamamiento desde/hasta</label>
+        <div style="display:flex;gap:5px">
+          <input id="f-llam-desde" type="date" style="height:34px;border:1.5px solid var(--border);border-radius:8px;padding:0 8px;font-family:Outfit;font-size:.82rem;background:var(--surface2);outline:none;width:130px">
+          <input id="f-llam-hasta" type="date" style="height:34px;border:1.5px solid var(--border);border-radius:8px;padding:0 8px;font-family:Outfit;font-size:.82rem;background:var(--surface2);outline:none;width:130px">
+        </div>
+      </div>
+      <div class="ff"><label>Vencimiento desde/hasta</label>
+        <div style="display:flex;gap:5px">
+          <input id="f-venc-desde" type="date" style="height:34px;border:1.5px solid var(--border);border-radius:8px;padding:0 8px;font-family:Outfit;font-size:.82rem;background:var(--surface2);outline:none;width:130px">
+          <input id="f-venc-hasta" type="date" style="height:34px;border:1.5px solid var(--border);border-radius:8px;padding:0 8px;font-family:Outfit;font-size:.82rem;background:var(--surface2);outline:none;width:130px">
+        </div>
+      </div>
+      <div class="ff" style="align-self:flex-end;flex-direction:row;gap:7px">
+        <button class="btn btn-sm btn-navy" onclick="aplicarFiltros()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Filtrar
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Estado de expedientes</div><div class="chart-subtitle">Distribución actual</div></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartEstados"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Ingresados por mes</div><div class="chart-subtitle">Últimos 12 meses</div></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartMensual"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Por tipo de resolución</div><div class="chart-subtitle">Cantidad por tipo</div></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartTipos"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Vencimientos próximos</div><div class="chart-subtitle">Próximos 60 días</div></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartVencProx"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Tabla de resultados -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">Detalle de expedientes</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="tableCount" style="font-size:.76rem;color:var(--text3)">—</span>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-sm btn-success" onclick="exportarExcel()">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 4.5l1.5 1.5-1.5 1.5M7 7.5h1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Excel
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="exportarPDF()">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 1h5l2.5 2.5v7.5h-7.5V1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.5 1v2.5H10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            PDF
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="tablaReporte">
+        <thead>
+          <tr>
+            <th onclick="sortTable('numero')">Número</th>
+            <th onclick="sortTable('caratula')" style="min-width:200px">Carátula</th>
+            <th onclick="sortTable('juzgado')">Juzgado</th>
+            <th onclick="sortTable('tipo')">Tipo</th>
+            <th onclick="sortTable('llamamiento')">Llamamiento</th>
+            <th onclick="sortTable('vencimiento')">Vencimiento</th>
+            <th onclick="sortTable('cancelacion')">Cancelación</th>
+            <th onclick="sortTable('estado')">Estado</th>
+            <th>Observación</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyReporte">
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text3)">Cargando datos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <div><strong id="footerMostrando">—</strong> de <strong id="footerTotal">—</strong> registros</div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+</div>
+<div id="toast-wrap"></div>
+
+<script>
+  /* ══════ Estado ══════ */
+  let _allData    = [];   // todos los datos cargados
+  let _filtered   = [];   // datos filtrados
+  let _page       = 1;
+  const PAGE_SIZE = 50;
+  let _sortCol    = 'llamamiento';
+  let _sortDir    = 'desc';
+  let _charts     = {};
+
+  /* ══════ Init ══════ */
+  window.onload = () => {
+    cargarDatos();
+    cargarTiposSelect();
+  };
+
+  /* ══════ Carga de datos ══════
+     En producción con Supabase reemplazar con:
+     const { data } = await db.from('v_expedientes').select('*').order('fecha_llamamiento', {ascending:false});
+     Por ahora usa google.script.run si está en GAS, o datos de demo. */
+  function cargarDatos() {
+    showSpinner();
+    // ── Si estás en Google Apps Script: ──
+    if (typeof google !== 'undefined' && google.script) {
+      google.script.run
+        .withSuccessHandler(res => {
+          hideSpinner();
+          const filas = Array.isArray(res) ? res : (res.filas || []);
+          _allData = parsearFilasGAS(filas);
+          _filtered = [..._allData];
+          renderizarTodo();
+        })
+        .withFailureHandler(err => { hideSpinner(); toast(err.message, 'error'); })
+        .leerTodos();
+      return;
+    }
+    // ── Datos de demo (para preview sin GAS) ──
+    hideSpinner();
+    _allData  = generarDatosDemo();
+    _filtered = [..._allData];
+    renderizarTodo();
+  }
+
+  /* Convierte el formato de filas GAS (array) al objeto usado por el módulo */
+  function parsearFilasGAS(filas) {
+    return filas.map(f => ({
+      numero:     f[0] || '',
+      caratula:   f[1] || '',
+      juzgado:    f[2] || '',
+      tipo:       f[3] || '',
+      llamamiento: f[4] || '',
+      vencimiento: f[5] || '',
+      cancelacion: f[6] || '',
+      observacion: f[7] || '',
+      id:          f[8] || null
+    }));
+  }
+
+  function cargarTiposSelect() {
+    if (typeof google !== 'undefined' && google.script) {
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || res.error) return;
+          const sel = document.getElementById('f-tipo');
+          res.filas.forEach(f => {
+            const op = document.createElement('option');
+            op.value = f[1]; op.textContent = f[1];
+            sel.appendChild(op);
+          });
+        })
+        .leerTablaAux('PLAZOS');
+    }
+  }
+
+  /* ══════ Filtros ══════ */
+  function aplicarFiltros() {
+    const txt       = document.getElementById('f-texto').value.trim().toLowerCase();
+    const juzgado   = document.getElementById('f-juzgado').value;
+    const estado    = document.getElementById('f-estado').value;
+    const tipo      = document.getElementById('f-tipo').value;
+    const llamDesde = document.getElementById('f-llam-desde').value;
+    const llamHasta = document.getElementById('f-llam-hasta').value;
+    const vencDesde = document.getElementById('f-venc-desde').value;
+    const vencHasta = document.getElementById('f-venc-hasta').value;
+    const hoy       = new Date().toISOString().slice(0,10);
+
+    _filtered = _allData.filter(r => {
+      if (txt && !r.numero.toLowerCase().includes(txt) && !r.caratula.toLowerCase().includes(txt)) return false;
+      if (juzgado && !r.juzgado.includes(juzgado)) return false;
+      if (tipo    && r.tipo !== tipo)  return false;
+      const estadoReal = calcEstado(r);
+      if (estado  && estadoReal !== estado) return false;
+      const llam = fmtISO(r.llamamiento);
+      if (llamDesde && llam < llamDesde) return false;
+      if (llamHasta && llam > llamHasta) return false;
+      const venc = fmtISO(r.vencimiento);
+      if (vencDesde && venc < vencDesde) return false;
+      if (vencHasta && venc > vencHasta) return false;
+      return true;
+    });
+
+    _page = 1;
+    renderizarTodo();
+    toast(`${_filtered.length} resultado(s)`, 'success');
+  }
+
+  function limpiarFiltros() {
+    ['f-texto','f-llam-desde','f-llam-hasta','f-venc-desde','f-venc-hasta'].forEach(id => document.getElementById(id).value = '');
+    ['f-juzgado','f-estado','f-tipo'].forEach(id => document.getElementById(id).value = '');
+    _filtered = [..._allData];
+    _page = 1;
+    renderizarTodo();
+  }
+
+  /* ══════ Render ══════ */
+  function renderizarTodo() {
+    actualizarKPIs();
+    actualizarTabla();
+    renderizarGraficos();
+  }
+
+  function calcEstado(r) {
+    if (r.cancelacion) return 'cancelado';
+    if (r.vencimiento) {
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const v = parseDateDisplay(r.vencimiento);
+      if (v && v < hoy) return 'vencido';
+    }
+    return 'vigente';
+  }
+
+  /* ── KPIs ── */
+  function actualizarKPIs() {
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const primerDelMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+    let total=0, vigentes=0, vencidos=0, cancelados=0, esteMes=0;
+    _filtered.forEach(r => {
+      total++;
+      const est = calcEstado(r);
+      if (est === 'vigente')   vigentes++;
+      if (est === 'vencido')   vencidos++;
+      if (est === 'cancelado') cancelados++;
+      const llam = parseDateDisplay(r.llamamiento);
+      if (llam && llam >= primerDelMes) esteMes++;
+    });
+
+    document.getElementById('kpi-total').textContent     = total;
+    document.getElementById('kpi-vigentes').textContent  = vigentes;
+    document.getElementById('kpi-vencidos').textContent  = vencidos;
+    document.getElementById('kpi-cancelados').textContent = cancelados;
+    document.getElementById('kpi-este-mes').textContent  = esteMes;
+    document.getElementById('kpi-vigentes-pct').textContent = total ? `${Math.round(vigentes/total*100)}% del total` : '';
+    document.getElementById('kpi-vencidos-pct').textContent = vencidos > 0 ? `⚠ Requieren cancelación` : '✓ Sin vencidos';
+  }
+
+  /* ── Tabla ── */
+  function sortTable(col) {
+    if (_sortCol === col) _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
+    else { _sortCol = col; _sortDir = 'asc'; }
+    // Actualizar headers
+    document.querySelectorAll('#tablaReporte thead th').forEach(th => {
+      th.classList.remove('sort-asc','sort-desc');
+    });
+    const idx = ['numero','caratula','juzgado','tipo','llamamiento','vencimiento','cancelacion','estado'].indexOf(col);
+    if (idx >= 0) {
+      const ths = document.querySelectorAll('#tablaReporte thead th');
+      ths[idx].classList.add(_sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+    _page = 1;
+    actualizarTabla();
+  }
+
+  function actualizarTabla() {
+    const sorted = [..._filtered].sort((a,b) => {
+      const av = a[_sortCol] || '';
+      const bv = b[_sortCol] || '';
+      return _sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+
+    const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+    const pageData = sorted.slice((_page-1)*PAGE_SIZE, _page*PAGE_SIZE);
+    const tbody = document.getElementById('tbodyReporte');
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    if (!pageData.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text3)">Sin resultados con los filtros aplicados</td></tr>`;
+    } else {
+      const frag = document.createDocumentFragment();
+      pageData.forEach(r => {
+        const estado = calcEstado(r);
+        const vencDate = parseDateDisplay(r.vencimiento);
+        const estaVencido = estado === 'vencido';
+        const tr = document.createElement('tr');
+        if (estaVencido) tr.classList.add('row-vencida');
+
+        const estadoBadge = `<span class="estado-badge ${estado}">${estado === 'vigente' ? '● Vigente' : estado === 'vencido' ? '⚠ Vencido' : '✓ Cancelado'}</span>`;
+        const vencChip = r.vencimiento
+          ? `<span class="date-chip venc${estaVencido ? ' vencida' : ''}">${estaVencido?'⚠ ':''}${r.vencimiento}</span>`
+          : '—';
+
+        tr.innerHTML = `
+          <td>${r.numero}</td>
+          <td class="td-wrap">${r.caratula}</td>
+          <td>${r.juzgado}</td>
+          <td>${r.tipo}</td>
+          <td><span class="date-chip llam">${r.llamamiento || '—'}</span></td>
+          <td>${vencChip}</td>
+          <td>${r.cancelacion ? `<span class="date-chip canc">${r.cancelacion}</span>` : '—'}</td>
+          <td>${estadoBadge}</td>
+          <td class="td-wrap" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${r.observacion || ''}</td>`;
+        frag.appendChild(tr);
+      });
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+    }
+
+    document.getElementById('footerMostrando').textContent = pageData.length;
+    document.getElementById('footerTotal').textContent = sorted.length;
+    document.getElementById('tableCount').textContent = `${sorted.length} registros`;
+    renderPaginacion(totalPages);
+  }
+
+  function renderPaginacion(totalPages) {
+    const pag = document.getElementById('pagination');
+    pag.innerHTML = '';
+    if (totalPages <= 1) return;
+    const addBtn = (label, page, disabled, active) => {
+      const b = document.createElement('button');
+      b.className = `pag-btn${active ? ' active' : ''}`;
+      b.textContent = label;
+      b.disabled = disabled;
+      b.onclick = () => { _page = page; actualizarTabla(); };
+      pag.appendChild(b);
+    };
+    addBtn('«', 1, _page === 1, false);
+    addBtn('‹', _page-1, _page === 1, false);
+    for (let i = Math.max(1,_page-2); i <= Math.min(totalPages,_page+2); i++) addBtn(i, i, false, i===_page);
+    addBtn('›', _page+1, _page===totalPages, false);
+    addBtn('»', totalPages, _page===totalPages, false);
+  }
+
+  /* ══════ Gráficos ══════ */
+  const CHART_COLORS = {
+    azul:  '#2f6de1', verde: '#1a9e6b', rojo:  '#e0362a',
+    warn:  '#d97706', purp:  '#7c3aed', teal:  '#0891b2',
+    gray:  '#8896a8'
+  };
+
+  function renderizarGraficos() {
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    let vigentes=0, vencidos=0, cancelados=0;
+    const byTipo = {}, byMes = {};
+    const proximos60 = {};
+
+    _filtered.forEach(r => {
+      const est = calcEstado(r);
+      if (est==='vigente')   vigentes++;
+      if (est==='vencido')   vencidos++;
+      if (est==='cancelado') cancelados++;
+      byTipo[r.tipo] = (byTipo[r.tipo] || 0) + 1;
+      if (r.llamamiento) {
+        const m = r.llamamiento.slice(3,10).split('/').reverse().join('-'); // MM/YYYY → YYYY-MM
+        const mesKey = r.llamamiento.includes('/') ? r.llamamiento.substring(3) : r.llamamiento.slice(0,7);
+        byMes[mesKey] = (byMes[mesKey] || 0) + 1;
+      }
+      // Próximos vencimientos
+      if (r.vencimiento && est==='vigente') {
+        const vd = parseDateDisplay(r.vencimiento);
+        if (vd) {
+          const diff = Math.round((vd - hoy) / 86400000);
+          if (diff >= 0 && diff <= 60) {
+            const semana = `Semana ${Math.floor(diff/7)+1}`;
+            proximos60[semana] = (proximos60[semana] || 0) + 1;
+          }
+        }
+      }
+    });
+
+    // ── Donut estados ──
+    destroyChart('chartEstados');
+    _charts['chartEstados'] = new Chart(document.getElementById('chartEstados'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Vigentes','Vencidos','Cancelados'],
+        datasets: [{ data: [vigentes,vencidos,cancelados],
+          backgroundColor: [CHART_COLORS.azul, CHART_COLORS.rojo, CHART_COLORS.verde],
+          borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
+        plugins: { legend: { position:'bottom', labels:{ color:'#4a5568', font:{family:'Outfit'} } } }
+      }
+    });
+
+    // ── Barras por mes ──
+    const meses = Object.keys(byMes).sort().slice(-12);
+    destroyChart('chartMensual');
+    _charts['chartMensual'] = new Chart(document.getElementById('chartMensual'), {
+      type: 'bar',
+      data: { labels: meses, datasets: [{ label:'Ingresados', data: meses.map(m=>byMes[m]||0),
+          backgroundColor: CHART_COLORS.azul + 'cc', borderRadius: 5 }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: { legend: { display:false } },
+        scales: { y: { beginAtZero:true, ticks:{ color:'#8896a8', font:{family:'Outfit'} }, grid:{color:'#e4e8f0'} },
+                  x: { ticks:{ color:'#8896a8', font:{family:'Outfit',size:10}, maxRotation:45 }, grid:{display:false} } }
+      }
+    });
+
+    // ── Horizontal por tipo ──
+    const tiposLabels = Object.keys(byTipo).sort((a,b)=>byTipo[b]-byTipo[a]).slice(0,8);
+    destroyChart('chartTipos');
+    _charts['chartTipos'] = new Chart(document.getElementById('chartTipos'), {
+      type: 'bar',
+      data: { labels: tiposLabels, datasets:[{ label:'Expedientes', data:tiposLabels.map(t=>byTipo[t]),
+          backgroundColor:[CHART_COLORS.purp,CHART_COLORS.teal,CHART_COLORS.azul,CHART_COLORS.verde,CHART_COLORS.warn,CHART_COLORS.rojo,CHART_COLORS.gray,'#f59e0b'].map(c=>c+'dd'),
+          borderRadius:5 }] },
+      options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ x:{beginAtZero:true,ticks:{color:'#8896a8',font:{family:'Outfit'}},grid:{color:'#e4e8f0'}},
+                 y:{ticks:{color:'#4a5568',font:{family:'Outfit',size:11}},grid:{display:false}} }
+      }
+    });
+
+    // ── Próximos vencimientos ──
+    const semanas = Object.keys(proximos60).sort();
+    destroyChart('chartVencProx');
+    _charts['chartVencProx'] = new Chart(document.getElementById('chartVencProx'), {
+      type: 'bar',
+      data: { labels: semanas, datasets:[{ label:'Vencimientos', data:semanas.map(s=>proximos60[s]),
+          backgroundColor: CHART_COLORS.warn+'cc', borderRadius:5 }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ y:{beginAtZero:true,ticks:{color:'#8896a8',font:{family:'Outfit'}},grid:{color:'#e4e8f0'}},
+                 x:{ticks:{color:'#8896a8',font:{family:'Outfit'}},grid:{display:false}} }
+      }
+    });
+  }
+
+  function destroyChart(id) { if(_charts[id]) { _charts[id].destroy(); delete _charts[id]; } }
+
+  /* ══════ Exportar Excel ══════ */
+  function exportarExcel() {
+    try {
+      const hoy = new Date().toISOString().slice(0,10);
+      const rows = [['Número','Carátula','Juzgado','Tipo Resolución','Llamamiento','Vencimiento','Cancelación','Estado','Observación']];
+      _filtered.forEach(r => rows.push([
+        r.numero, r.caratula, r.juzgado, r.tipo,
+        r.llamamiento, r.vencimiento, r.cancelacion,
+        calcEstado(r), r.observacion
+      ]));
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      // Estilo de cabecera (ancho de columnas)
+      ws['!cols'] = [
+        {wch:12},{wch:40},{wch:20},{wch:22},{wch:14},{wch:14},{wch:14},{wch:12},{wch:30}
+      ];
+      // Auto-filter
+      ws['!autofilter'] = { ref: `A1:I${rows.length}` };
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Expedientes');
+
+      // Hoja de resumen
+      const resumen = [
+        ['REPORTE DE GESTIÓN JUDICIAL'],
+        [`Fecha: ${hoy}`],
+        [''],
+        ['Indicador','Valor'],
+        ['Total expedientes', _filtered.length],
+        ['Vigentes',    _filtered.filter(r=>calcEstado(r)==='vigente').length],
+        ['Vencidos',    _filtered.filter(r=>calcEstado(r)==='vencido').length],
+        ['Cancelados',  _filtered.filter(r=>calcEstado(r)==='cancelado').length],
+      ];
+      const wsRes = XLSX.utils.aoa_to_sheet(resumen);
+      XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
+
+      XLSX.writeFile(wb, `expedientes_${hoy}.xlsx`);
+      toast('Excel generado exitosamente', 'success');
+    } catch(e) { toast('Error al generar Excel: ' + e.message, 'error'); }
+  }
+
+  /* ══════ Exportar PDF ══════ */
+  function exportarPDF() {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const hoy = new Date().toLocaleDateString('es-AR');
+
+      // Header
+      doc.setFillColor(26, 38, 64);
+      doc.rect(0, 0, 297, 22, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(14); doc.setFont('helvetica','bold');
+      doc.text('Gestión Judicial · Reporte de Expedientes', 14, 14);
+      doc.setFontSize(9); doc.setFont('helvetica','normal');
+      doc.text(`Generado: ${hoy}`, 260, 14);
+
+      // KPIs
+      const total  = _filtered.length;
+      const vig    = _filtered.filter(r=>calcEstado(r)==='vigente').length;
+      const venc   = _filtered.filter(r=>calcEstado(r)==='vencido').length;
+      const canc   = _filtered.filter(r=>calcEstado(r)==='cancelado').length;
+
+      doc.setTextColor(26,38,64);
+      doc.setFontSize(10); doc.setFont('helvetica','bold');
+      const kpiY = 30;
+      [[`Total: ${total}`,14],[`Vigentes: ${vig}`,70],[`Vencidos: ${venc}`,126,true],[`Cancelados: ${canc}`,182]].forEach(([txt,x,red])=>{
+        if (red) doc.setTextColor(224,54,42); else doc.setTextColor(26,38,64);
+        doc.text(txt, x, kpiY);
+      });
+      doc.setTextColor(26,38,64);
+
+      // Tabla
+      doc.autoTable({
+        startY: 36,
+        head: [['Número','Carátula','Juzgado','Tipo','Llamamiento','Vencimiento','Cancelación','Estado']],
+        body: _filtered.map(r => [
+          r.numero, r.caratula.substring(0,45), r.juzgado, r.tipo,
+          r.llamamiento, r.vencimiento, r.cancelacion, calcEstado(r)
+        ]),
+        styles: { font:'helvetica', fontSize:8, cellPadding:3, overflow:'ellipsize' },
+        headStyles: { fillColor:[26,38,64], textColor:255, fontStyle:'bold', fontSize:8 },
+        alternateRowStyles: { fillColor:[248,249,252] },
+        columnStyles: { 1:{cellWidth:55}, 7:{cellWidth:20} },
+        didParseCell: data => {
+          if (data.section==='body' && data.column.index===7) {
+            const v = data.cell.raw;
+            if (v==='vencido')   { data.cell.styles.textColor=[224,54,42]; data.cell.styles.fontStyle='bold'; }
+            if (v==='cancelado') { data.cell.styles.textColor=[26,158,107]; }
+          }
+        },
+        margin: { left:10, right:10 }
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i=1; i<=pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7); doc.setTextColor(136,150,168);
+        doc.text(`Página ${i} de ${pageCount}`, 280, 205, { align:'right' });
+        doc.text('Sistema de Gestión Judicial · Confidencial', 14, 205);
+      }
+
+      doc.save(`expedientes_${new Date().toISOString().slice(0,10)}.pdf`);
+      toast('PDF generado exitosamente', 'success');
+    } catch(e) { toast('Error al generar PDF: ' + e.message, 'error'); }
+  }
+
+  /* ══════ Helpers ══════ */
+  function parseDateDisplay(s) {
+    if (!s) return null;
+    if (s.includes('/')) { const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
+    return new Date(s);
+  }
+
+  function fmtISO(s) {
+    if (!s) return '';
+    if (s.includes('/')) { const [d,m,y]=s.split('/'); return `${y}-${m}-${d}`; }
+    return s;
+  }
+
+  function showSpinner() { document.getElementById('spinner').style.display='block'; }
+  function hideSpinner() { document.getElementById('spinner').style.display='none'; }
+
+  function toast(msg, tipo='success') {
+    const el = document.createElement('div');
+    el.className = `toast-item ${tipo}`;
+    el.textContent = msg;
+    document.getElementById('toast-wrap').appendChild(el);
+    setTimeout(()=>{ el.style.cssText+='opacity:0;transform:translateX(16px);transition:all .28s'; setTimeout(()=>el.remove(),290); }, 3200);
+  }
+
+  /* ══════ Datos de demo (solo para preview sin GAS/Supabase) ══════ */
+  function generarDatosDemo() {
+    const tipos  = ['HOMOLOGACION','DIVORCIO','NULIDAD','AUTO APERTURA PRUEBA','ALIMENTOS PROV.','REPOSICION'];
+    const juzgados = ['13F_Dra. Guerrero','10F_Dra. Alma'];
+    const adjs   = ['García c/ López','Martínez s/ divorcio','Rodríguez c/ Municipalidad','Pérez s/ nulidad','González c/ González','Fernández s/ alimentos','Torres c/ PAMI','Romero s/ reposición'];
+    const nums   = ['12345/24','23456/24','34567/24','45678/24','56789/24','67890/24','78901/23','89012/23','90123/23','01234/23','11111/24','22222/24','33333/24','44444/23','55555/24'];
+    const fmtD   = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    const addDays = (d,n)=>{ const r=new Date(d); r.setDate(r.getDate()+n); return r; };
+    const hoy = new Date();
+    return Array.from({length:120},(_,i)=>{
+      const llam   = addDays(hoy, -Math.floor(Math.random()*400));
+      const dias   = [30,60,20,15,30,10][Math.floor(Math.random()*6)];
+      const venc   = addDays(llam, Math.floor(dias*1.4));
+      const canc   = Math.random()>0.6 ? addDays(venc,-Math.floor(Math.random()*10)) : null;
+      return {
+        numero:      nums[i%nums.length],
+        caratula:    adjs[i%adjs.length] + ' s/ ' + tipos[i%tipos.length].toLowerCase(),
+        juzgado:     juzgados[i%2],
+        tipo:        tipos[i%tipos.length],
+        llamamiento: fmtD(llam),
+        vencimiento: fmtD(venc),
+        cancelacion: canc ? fmtD(canc) : '',
+        observacion: i%5===0 ? 'Nota de ejemplo' : ''
+      };
+    });
+  }
+</script>
+</body>
+</html>

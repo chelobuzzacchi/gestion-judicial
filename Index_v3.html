@@ -602,6 +602,13 @@
           </div>
           <div class="form-field fg-4"><label>Cancelación</label><input id="inp-cancelacion" type="date" name="cancelacion"></div>
           <div class="form-field fg-4"><label>Sin Efecto <span style="font-size:.68rem;background:#ede9fe;color:#6b21a8;padding:1px 6px;border-radius:4px;font-weight:600">NUEVO</span></label><input id="inp-sin-efecto" type="date" name="sin_efecto"></div>
+          <div class="section-label" style="margin-top:2px">Asignación</div>
+          <div class="form-field fg-12" id="field-asignado" style="display:none">
+            <label>Asignar a usuario <span style="font-size:.72rem;color:var(--text3)">(opcional — deja vacío si no asignás)</span></label>
+            <select id="inp-asignado" name="asignado">
+              <option value="">— Sin asignar —</option>
+            </select>
+          </div>
           <div class="section-label" style="margin-top:2px">Adicional</div>
           <div class="form-field fg-12"><label>Observación</label><input type="text" name="observacion" placeholder="Notas adicionales..."></div>
         </div>
@@ -709,12 +716,13 @@
   let _cabecera       = null;
   let _libroNecesitaRefresh = false;
   let _vencimientosRecalculados = new Set();
+  let _usuariosMap = {};  // { uuid: 'Nombre Apellido' } — para mostrar chip en tabla
   const TODAY_STR = new Date().toISOString().slice(0,10);
 
   /* ══ SUPABASE ══ Reemplazá con tus credenciales ══════════════════════
      Project Settings → API → Project URL  +  anon public key           */
-  const SUPABASE_URL = 'https://lnmnwuigvcouzoteapjy.supabase.co';  // ← reemplazar
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxubW53dWlndmNvdXpvdGVhcGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzAzMzcsImV4cCI6MjA4NzY0NjMzN30.FFpmVyVwej46kRo8zvXusr3D7o3MtuISKer5M0hSgiQ';                      // ← reemplazar
+  const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';  // ← reemplazar
+  const SUPABASE_KEY = 'TU_ANON_KEY';                      // ← reemplazar
   const { createClient } = supabase;
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -939,7 +947,15 @@
       const div = document.createElement('div'); div.className = 'action-btns';
 
       if (ES_ADMIN) {
-        // Admin: editar + eliminar completos
+        // Admin: editar + eliminar + chip de usuario asignado
+        const asignadoId = fila[10] || null;
+        if (asignadoId && _usuariosMap[asignadoId]) {
+          const chip = document.createElement('span');
+          chip.style.cssText = 'font-size:.68rem;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle';
+          chip.title = 'Asignado a: ' + _usuariosMap[asignadoId];
+          chip.textContent = '👤 ' + _usuariosMap[asignadoId].split(' ')[0];
+          div.appendChild(chip);
+        }
         const btnE = document.createElement('button'); btnE.className = 'btn-icon edit'; btnE.title = 'Modificar';
         btnE.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 9.5V12h2.5l6-6-2.5-2.5L1 9.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 2.5l1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
         btnE.addEventListener('click', () => abrirModalEditar(idFila, fila));
@@ -1011,11 +1027,41 @@
       fmt(e.fecha_cancelacion),
       fmt(e.fecha_sin_efecto),
       e.observacion  || '',
-      e.id  // UUID — usado por editar/eliminar
+      e.id,          // [9] UUID — usado por editar/eliminar
+      e.asignado_a || null  // [10] UUID del usuario asignado
     ];
   }
 
-  window.onload = () => { inicializarRol(); cargarDatosIniciales(); cargarListaPlazos(); };
+
+  /* ══ Precarga el mapa uuid→nombre para chips en tabla ══ */
+  async function cargarMapaUsuarios() {
+    try {
+      const { data } = await db.from('perfiles').select('id,nombre_completo').eq('activo', true);
+      _usuariosMap = {};
+      (data || []).forEach(u => { _usuariosMap[u.id] = u.nombre_completo; });
+    } catch(e) { console.warn('No se pudo cargar mapa de usuarios:', e.message); }
+  }
+
+  /* ══ Carga opciones de usuarios en un <select> ══
+     selectedId = UUID del usuario actualmente asignado (para editar) */
+  async function cargarSelectUsuarios(selectEl, selectedId) {
+    selectEl.innerHTML = '<option value="">— Sin asignar —</option>';
+    try {
+      const { data } = await db.from('perfiles')
+        .select('id,nombre_completo,rol')
+        .eq('activo', true)
+        .order('nombre_completo');
+      (data || []).forEach(u => {
+        const op = document.createElement('option');
+        op.value       = u.id;
+        op.textContent = u.nombre_completo + (u.rol === 'admin' ? ' 👑' : '');
+        if (u.id === selectedId) op.selected = true;
+        selectEl.appendChild(op);
+      });
+    } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
+  }
+
+  window.onload = () => { inicializarRol(); cargarDatosIniciales(); cargarListaPlazos(); if (ES_ADMIN) cargarMapaUsuarios(); };
 
   function cargarDatosIniciales(mantenerRecalculados) {
     // Si no se pide mantener el Set, lo limpiamos (carga normal sin highlight)
@@ -1103,6 +1149,11 @@
     document.querySelectorAll('#formCarga input, #formCarga select').forEach(i => i.classList.remove('invalid'));
     $('inp-vencimiento').value = '';
     $('calcBadge').classList.remove('visible');
+    // Mostrar campo asignación (solo admin)
+    if (ES_ADMIN) {
+      $('field-asignado').style.display = '';
+      cargarSelectUsuarios($('inp-asignado'), null);
+    }
     $('modalIconWrap').className = 'modal-icon-wrap new';
     $('modalIconWrap').innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`;
     $('modalTitle').textContent    = 'Nuevo Registro';
@@ -1126,7 +1177,13 @@
     form.llamamiento.value = fmtDate(datos[4]);
     form.vencimiento.value = fmtDate(datos[5]);
     form.cancelacion.value = fmtDate(datos[6]);
-    form.observacion.value = datos[7];
+    form.observacion.value = datos[8] || '';
+    // sin_efecto está en datos[7] — no lo cargamos en el form (se maneja aparte)
+    // Mostrar campo asignación (solo admin) y cargar opciones
+    if (ES_ADMIN) {
+      $('field-asignado').style.display = '';
+      cargarSelectUsuarios($('inp-asignado'), datos[10] || null);
+    }
     $('modalIconWrap').className = 'modal-icon-wrap edit';
     $('modalIconWrap').innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12V14.5h2.5l7-7-2.5-2.5L2 12z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 3l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
     $('modalTitle').textContent    = 'Modificar Registro';
@@ -1139,7 +1196,7 @@
     setTimeout(() => $('inp-caratula').focus(), 260);
   }
 
-  function cerrarModalForm() { $('modalForm').classList.remove('open'); editandoFilaId = null; }
+  function cerrarModalForm() { $('modalForm').classList.remove('open'); editandoFilaId = null; $('field-asignado').style.display = 'none'; if ($('inp-asignado')) $('inp-asignado').innerHTML = '<option value="">— Sin asignar —</option>'; }
 
   /* ── Cálculo automático (ahora incluye juzgado) ── */
   let _calcTimer = null;
@@ -1201,7 +1258,8 @@
           fecha_vencimiento: data['inp-vencimiento'] || data.vencimiento || null,
           fecha_cancelacion: data['inp-cancelacion'] || data.cancelacion || null,
           fecha_sin_efecto:  data['inp-sin-efecto']  || data.sin_efecto  || null,
-          observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null
+          observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null,
+          asignado_a:        data['asignado'] || null
         };
         let error;
         if (editandoFilaId) {

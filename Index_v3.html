@@ -740,11 +740,11 @@
     sessionStorage.setItem('userId',   session.user.id);
   })();
 
-  // ── ROLES v2.0 ──
-  const ROL       = sessionStorage.getItem('userRol')  || 'usuario';
-  const USER_NAME = sessionStorage.getItem('userName') || 'Usuario';
-  const USER_ID   = sessionStorage.getItem('userId')   || null;
-  const ES_ADMIN  = ROL === 'admin';
+  // ── ROLES v2.0 ── (let para que se actualicen tras checkSession)
+  let ROL       = sessionStorage.getItem('userRol')  || 'usuario';
+  let USER_NAME = sessionStorage.getItem('userName') || 'Usuario';
+  let USER_ID   = sessionStorage.getItem('userId')   || null;
+  let ES_ADMIN  = ROL === 'admin';
 
   // Tablas aux
   let auxHoja   = null;
@@ -760,6 +760,11 @@
     if (!sessionStorage.getItem('userRol')) {
       setTimeout(inicializarRol, 300); return;
     }
+    // Re-leer los valores: pueden haber cambiado si checkSession acaba de correr
+    ROL       = sessionStorage.getItem('userRol')  || 'usuario';
+    USER_NAME = sessionStorage.getItem('userName') || 'Usuario';
+    USER_ID   = sessionStorage.getItem('userId')   || null;
+    ES_ADMIN  = ROL === 'admin';
     // User bar
     $('userNameBar').textContent = USER_NAME;
     $('userRolBar').textContent  = ES_ADMIN ? '👑 Administrador' : '👤 Usuario';
@@ -1172,7 +1177,12 @@
     const form = $('formCarga');
     form.numero.value      = datos[0];
     form.caratula.value    = datos[1];
-    form.juzgado.value     = datos[2];
+    // datos[2] tiene formato "13F · Dra. Guerrero" pero el select usa "13F_Dra. Guerrero"
+    // Extraer el prefijo (ej: "13F") y buscar la option que empiece con ese prefijo
+    const prefEditar = (datos[2] || '').match(/(\d+F)/i)?.[1]?.toUpperCase() || '';
+    Array.from(form.juzgado.options).forEach(opt => {
+      if (opt.value.toUpperCase().startsWith(prefEditar)) form.juzgado.value = opt.value;
+    });
     form.tipo.value        = datos[3];
     form.llamamiento.value = fmtDate(datos[4]);
     form.vencimiento.value = fmtDate(datos[5]);
@@ -1259,7 +1269,7 @@
           fecha_cancelacion: data['inp-cancelacion'] || data.cancelacion || null,
           fecha_sin_efecto:  data['inp-sin-efecto']  || data.sin_efecto  || null,
           observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null,
-          asignado_a:        data['asignado'] || null
+          asignado_a:        data['asignado'] && data['asignado'] !== '' ? data['asignado'] : null
         };
         let error;
         if (editandoFilaId) {

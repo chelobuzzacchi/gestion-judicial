@@ -421,7 +421,7 @@
   /* ══ Si ya hay sesión activa → redirigir directo al sistema ══ */
   (async () => {
     const { data: { session } } = await db.auth.getSession();
-    if (session) window.location.href = 'Index_v2.html';
+    if (session) window.location.href = 'Index_v3.html';
   })();
 
   /* ══ Navegación entre pantallas ══ */
@@ -532,7 +532,7 @@
       sessionStorage.setItem('userId',   data.user.id);
 
       showAlert('✓ Acceso concedido · Redirigiendo...', 'success');
-      setTimeout(() => { window.location.href = 'Index_v2.html'; }, 900);
+      setTimeout(() => { window.location.href = 'Index_v3.html'; }, 900);
     } catch(e) {
       showAlert(traducirError(e.message));
     } finally {

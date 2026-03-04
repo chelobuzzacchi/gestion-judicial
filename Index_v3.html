@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión Judicial · Chelo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f4f6fb;
+      --surface:   #ffffff;
+      --surface2:  #f8f9fc;
+      --border:    #e4e8f0;
+      --border2:   #d0d6e4;
+      --navy:      #1a2640;
+      --navy2:     #253350;
+      --accent:    #2f6de1;
+      --accent-h:  #1d55c0;
+      --accent-s:  #e8f0fd;
+      --danger:    #e0362a;
+      --danger-s:  #fdf0ef;
+      --success:   #1a9e6b;
+      --success-s: #edf8f3;
+      --warn:      #d97706;
+      --warn-s:    #fef9ec;
+      --purple:    #7c3aed;
+      --purple-s:  #f3f0ff;
+      --teal:      #0891b2;
+      --teal-s:    #ecfeff;
+      --text:      #1a2640;
+      --text2:     #4a5568;
+      --text3:     #8896a8;
+      --radius:    12px;
+      --radius-lg: 18px;
+      --shadow:    0 2px 12px rgba(26,38,64,.08);
+      --shadow-lg: 0 8px 40px rgba(26,38,64,.16);
+
+      /* Vencido */
+      --venc-bg:     #fff1f0;
+      --venc-border: #fca5a5;
+      --venc-text:   #991b1b;
+      --venc-chip:   #fee2e2;
+
+      /* Modificado */
+      --mod-bg:    #fffbeb;
+      --mod-chip:  #fef3c7;
+      --mod-text:  #92400e;
+
+      /* Sin efecto (violeta) */
+      --se-bg:     #faf5ff;
+      --se-border: #d8b4fe;
+      --se-text:   #6b21a8;
+      --se-chip:   #ede9fe;
+    }
+
+    body { background: var(--bg); font-family: 'Outfit', sans-serif; color: var(--text); min-height: 100vh; }
+    .app-wrapper { max-width: 100%; margin: 0 auto; padding: 20px 20px 60px; }
+
+    /* ── Tabs principales ── */
+    .main-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 5px; width: fit-content; box-shadow: var(--shadow); }
+    .main-tab { padding: 8px 20px; border-radius: 10px; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: .85rem; font-weight: 600; color: var(--text3); background: transparent; transition: all .18s; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .main-tab:hover { color: var(--text2); background: var(--surface2); }
+    .main-tab.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(26,38,64,.2); }
+    .main-tab .tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    /* Badge de "necesita refresh" */
+    .main-tab .refresh-badge { background: var(--warn); color: #fff; font-size: .6rem; padding: 1px 5px; border-radius: 99px; display: none; }
+    .main-tab.needs-refresh .refresh-badge { display: inline-block; }
+
+    .tab-page { display: none; }
+    .tab-page.active { display: block; }
+
+    /* ── Page header ── */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .page-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--navy); letter-spacing: -.02em; }
+    .page-header p  { font-size: .78rem; color: var(--text3); margin-top: 2px; }
+
+    /* ── Botones ── */
+    .btn { display: inline-flex; align-items: center; gap: 7px; border: none; border-radius: var(--radius); font-family: 'Outfit', sans-serif; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .btn-sm  { padding: 8px 18px; font-size: .83rem; }
+    .btn-md  { padding: 10px 22px; font-size: .88rem; }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(47,109,225,.28); }
+    .btn-primary:hover { background: var(--accent-h); transform: translateY(-1px); }
+    .btn-navy    { background: var(--navy); color: #fff; }
+    .btn-navy:hover  { background: var(--navy2); }
+    .btn-outline { background: transparent; color: var(--text2); border: 1.5px solid var(--border2); }
+    .btn-outline:hover { background: var(--surface2); }
+    .btn-danger  { background: var(--danger); color: #fff; }
+    .btn-danger:hover  { background: #c0271d; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: #0e7a52; }
+    .btn-purple  { background: var(--purple); color: #fff; }
+    .btn-purple:hover  { background: #6d28d9; }
+    .btn-teal    { background: var(--teal); color: #fff; }
+    .btn-teal:hover    { background: #0e7490; }
+    .btn:disabled { opacity:.6; cursor:not-allowed; transform:none !important; }
+
+    /* ── Search panel ── */
+    .search-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .search-title { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+    .search-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+    .sf { display: flex; flex-direction: column; gap: 4px; }
+    .sf label { font-size: .72rem; font-weight: 600; color: var(--text2); }
+    .sf input, .sf select { height: 34px; border: 1.5px solid var(--border); border-radius: 8px; padding: 0 10px; font-family: 'Outfit', sans-serif; font-size: .83rem; color: var(--text); background: var(--surface2); outline: none; transition: border-color .14s, box-shadow .14s; }
+    .sf input:focus, .sf select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,109,225,.11); background: #fff; }
+    .sf.w-text input { width: 190px; }
+    .sf.w-date input { width: 130px; }
+    .sf.w-sel  select { width: 140px; }
+    .divider-v { width: 1px; background: var(--border); align-self: stretch; margin: 0 3px; }
+    .rango-box { background: var(--accent-s); border: 1.5px solid #c5d9fa; border-radius: 10px; padding: 11px 14px; margin-top: 12px; }
+    .rango-box-title { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); margin-bottom: 9px; display: flex; align-items: center; gap: 5px; }
+
+    /* ── Status bar ── */
+    .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; min-height: 26px; flex-wrap: wrap; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; font-weight: 500; color: var(--text2); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 3px 11px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
+    .spinner-ring { width: 15px; height: 15px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .65s linear infinite; display: none; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sort-note { font-size: .72rem; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+
+    /* ── Leyenda vencidos ── */
+    .legend-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--text3); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .legend-dot.vencido    { background: var(--venc-bg); border: 1.5px solid var(--venc-border); }
+    .legend-dot.modificado { background: var(--mod-bg); border: 1.5px solid #fcd34d; }
+    .legend-dot.sin-efecto { background: var(--se-bg); border: 1.5px solid var(--se-border); }
+
+    /* ── Tabla ── */
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+    .table-scroll { overflow-x: hidden; max-height: 60vh; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+    /* Anchos LIBRO */
+    .libro-table col.c-num  { width: 7%; }
+    .libro-table col.c-car  { width: 24%; }
+    .libro-table col.c-juz  { width: 11%; }
+    .libro-table col.c-tipo { width: 9%; }
+    .libro-table col.c-llam { width: 9%; }
+    .libro-table col.c-venc { width: 10%; }
+    .libro-table col.c-canc { width: 9%; }
+    .libro-table col.c-obs  { width: 15%; }
+    .libro-table col.c-acc  { width: 6%; }
+
+    thead tr { background: linear-gradient(135deg,#16213a 0%,#1e3a5f 100%); position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(22,33,58,.18); }
+    thead th { padding: 11px 12px; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); border: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid rgba(255,255,255,.07); }
+    thead th:last-child { border-right: none; }
+    thead th.th-llam { color: #93c5fd; }
+
+    tbody tr { border-bottom: 1px solid #eef0f6; transition: background .12s; }
+    tbody tr:nth-child(even) { background: #fafbfd; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #eef3fd !important; }
+    tbody td { font-size: .83rem; color: #2d3748; }
+    tbody td:first-child { font-weight: 600; color: var(--navy); font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
+
+    /* ── Fila vencida ── */
+    tbody tr.row-vencida { background: var(--venc-bg) !important; }
+    tbody tr.row-vencida:hover { background: #ffe4e3 !important; }
+    tbody tr.row-vencida td { color: var(--venc-text) !important; }
+    tbody tr.row-vencida td:first-child { color: var(--danger) !important; font-weight: 700; }
+
+    /* ── Fila con vencimiento modificado (recalculado) ── */
+    tbody tr.row-modificada { background: var(--mod-bg) !important; }
+    tbody tr.row-modificada:hover { background: #fef9e7 !important; }
+
+    /* ── Fila Sin Efecto ── */
+    tbody tr.row-sin-efecto { background: var(--se-bg) !important; }
+    tbody tr.row-sin-efecto:hover { background: #f3e8ff !important; }
+    tbody tr.row-sin-efecto td { color: var(--se-text) !important; opacity: .85; }
+
+    tbody td { padding: 8px 10px; font-size: .82rem; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tbody td:first-child { color: var(--text); font-weight: 600; }
+    tbody td.td-wrap { white-space: normal; word-break: break-word; line-height: 1.35; }
+
+    .date-chip { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: .72rem; border-radius: 5px; padding: 2px 6px; }
+    .date-chip.llamamiento { background: #dbeafe; color: #1d4ed8; }
+    .date-chip.vencimiento { background: #fef3c7; color: #92400e; }
+    .date-chip.vencimiento.vencida { background: var(--venc-chip); color: var(--danger); font-weight: 700; }
+    .date-chip.vencimiento.modificada { background: var(--mod-chip); color: var(--warn); }
+    .date-chip.cancelacion { background: #d1fae5; color: #065f46; }
+    .date-chip.sin-efecto  { background: var(--se-chip); color: var(--se-text); font-weight: 600; }
+    .date-chip.fecha { background: #ede9fe; color: #5b21b6; }
+
+    /* Ícono de vencido en la chip */
+    .chip-icon { margin-right: 2px; font-style: normal; }
+
+    /* Badge "Recalculado" que aparece junto a la fecha */
+    .badge-recalc {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: .62rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      background: var(--warn-s); color: var(--warn); border: 1px solid #fcd34d;
+      border-radius: 4px; padding: 1px 5px; margin-left: 3px; vertical-align: middle;
+    }
+
+    .action-btns { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+    .btn-icon { width: 29px; height: 29px; border-radius: 7px; border: 1.5px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .13s; background: transparent; flex-shrink: 0; }
+    .btn-icon.edit { color: var(--accent); border-color: #c5d9fa; background: var(--accent-s); }
+    .btn-icon.edit:hover { background: var(--accent); border-color: var(--accent); color: #fff; transform: scale(1.1); }
+    .btn-icon.del  { color: var(--danger); border-color: #f5c5c2; background: var(--danger-s); }
+    .btn-icon.del:hover  { background: var(--danger); border-color: var(--danger); color: #fff; transform: scale(1.1); }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+    .empty-state p { font-size: .88rem; margin-top: 10px; }
+
+    .table-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; background: var(--surface2); }
+    .table-footer-info { font-size: .76rem; color: var(--text3); }
+    .table-footer-info strong { color: var(--text2); }
+
+    /* ── Sub-tabs ── */
+    .sub-tabs { display: flex; gap: 3px; margin-bottom: 16px; }
+    .sub-tab { padding: 6px 16px; border-radius: 8px; border: 1.5px solid var(--border); cursor: pointer; font-family: 'Outfit', sans-serif; font-size: .82rem; font-weight: 600; color: var(--text3); background: var(--surface); transition: all .15s; }
+    .sub-tab:hover { color: var(--text2); border-color: var(--border2); }
+    .sub-tab.active.plazos        { background: var(--purple-s); color: var(--purple); border-color: #c4b5fd; }
+    .sub-tab.active.inhabilidades { background: var(--danger-s); color: var(--danger); border-color: #fca5a5; }
+    .sub-tab.active.licencias     { background: var(--teal-s);   color: var(--teal);   border-color: #a5f3fc; }
+    .sub-page { display: none; }
+    .sub-page.active { display: block; }
+
+    /* ── Modales ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.52); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 720px; max-height: 92vh; overflow-y: auto; transform: translateY(24px) scale(.97); opacity: 0; transition: transform .25s cubic-bezier(.34,1.3,.64,1), opacity .2s; }
+    .modal-overlay.open .modal-card { transform: translateY(0) scale(1); opacity: 1; }
+    .modal-card.sm { max-width: 480px; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0; }
+    .modal-header-left { display: flex; align-items: center; gap: 11px; }
+    .modal-icon-wrap { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .modal-icon-wrap.new    { background: var(--accent-s); color: var(--accent); }
+    .modal-icon-wrap.edit   { background: var(--warn-s);   color: var(--warn); }
+    .modal-icon-wrap.danger { background: var(--danger-s); color: var(--danger); }
+    .modal-icon-wrap.purple { background: var(--purple-s); color: var(--purple); }
+    .modal-icon-wrap.teal   { background: var(--teal-s);   color: var(--teal); }
+    .modal-title    { font-size: 1rem; font-weight: 700; color: var(--navy); }
+    .modal-subtitle { font-size: .76rem; color: var(--text3); margin-top: 1px; }
+    .modal-close { width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--surface2); color: var(--text3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .13s; font-size: .95rem; }
+    .modal-close:hover { background: var(--border); color: var(--text); }
+    .modal-divider { height: 1px; background: var(--border); margin: 16px 24px 0; }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 0 24px 20px; display: flex; justify-content: flex-end; gap: 9px; }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .fg-3  { grid-column: span 3; }
+    .fg-4  { grid-column: span 4; }
+    .fg-5  { grid-column: span 5; }
+    .fg-6  { grid-column: span 6; }
+    .fg-9  { grid-column: span 9; }
+    .fg-12 { grid-column: span 12; }
+    @media (max-width: 600px) { .fg-3,.fg-4,.fg-5,.fg-6,.fg-9 { grid-column: span 12; } }
+    .section-label { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text3); grid-column: span 12; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+    .form-field { display: flex; flex-direction: column; gap: 5px; }
+    .form-field label { font-size: .76rem; font-weight: 600; color: var(--text2); }
+    .form-field .req { color: var(--accent); margin-left: 2px; }
+    .form-field input, .form-field select { height: 38px; border: 1.5px solid var(--border); border-radius: 8px; padding: 0 11px; font-family: 'Outfit', sans-serif; font-size: .86rem; color: var(--text); background: var(--surface2); outline: none; transition: border-color .14s, box-shadow .14s, background .14s; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,109,225,.11); background: #fff; }
+    .form-field input.invalid { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(224,54,42,.09); }
+    .form-field input[readonly] { background: var(--surface2); color: var(--text3); cursor: not-allowed; }
+    .form-field .field-note { font-size: .72rem; color: var(--text3); margin-top: 2px; }
+    .calc-badge { display: none; align-items: center; gap: 5px; font-size: .72rem; color: var(--warn); font-weight: 500; margin-top: 4px; }
+    .calc-badge.visible { display: flex; }
+    .calc-ring { width: 12px; height: 12px; border: 2px solid #fde68a; border-top-color: var(--warn); border-radius: 50%; animation: spin .6s linear infinite; }
+
+    /* Modal btns */
+    .btn-modal-cancel { height: 38px; padding: 0 18px; border-radius: 8px; border: 1.5px solid var(--border2); background: transparent; color: var(--text2); font-family: 'Outfit', sans-serif; font-size: .86rem; font-weight: 500; cursor: pointer; transition: all .13s; }
+    .btn-modal-cancel:hover { background: var(--surface2); }
+    .btn-modal-save { height: 38px; padding: 0 24px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-family: 'Outfit', sans-serif; font-size: .86rem; font-weight: 600; cursor: pointer; transition: all .13s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 10px rgba(47,109,225,.28); }
+    .btn-modal-save:hover { background: var(--accent-h); }
+    .btn-modal-save:disabled { opacity:.6; cursor:not-allowed; }
+    .btn-modal-save.warn-mode   { background: var(--warn);   box-shadow: 0 3px 10px rgba(217,119,6,.28); }
+    .btn-modal-save.warn-mode:hover   { background: #b45309; }
+    .btn-modal-save.danger-mode { background: var(--danger); box-shadow: 0 3px 10px rgba(224,54,42,.22); }
+    .btn-modal-save.danger-mode:hover { background: #c0271d; }
+    .btn-modal-save.purple-mode { background: var(--purple); }
+    .btn-modal-save.purple-mode:hover { background: #6d28d9; }
+    .btn-modal-save.teal-mode   { background: var(--teal); }
+    .btn-modal-save.teal-mode:hover   { background: #0e7490; }
+
+    /* Confirm modal */
+    .confirm-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 400px; padding: 26px; transform: translateY(18px) scale(.97); opacity: 0; transition: transform .22s cubic-bezier(.34,1.3,.64,1), opacity .18s; }
+    .modal-overlay.open .confirm-card { transform: translateY(0) scale(1); opacity: 1; }
+    .confirm-icon { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; margin-bottom: 13px; }
+    .confirm-icon.danger { background: var(--danger-s); color: var(--danger); }
+    .confirm-card h6 { font-size: .96rem; font-weight: 700; margin-bottom: 5px; }
+    .confirm-card p  { font-size: .83rem; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 9px; justify-content: flex-end; }
+    .btn-cc { height: 36px; padding: 0 17px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: .83rem; cursor: pointer; transition: all .13s; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-cc.cancel { border: 1.5px solid var(--border2); background: transparent; color: var(--text2); font-weight: 500; }
+    .btn-cc.cancel:hover { background: var(--surface2); }
+    .btn-cc.ok { border: none; background: var(--danger); color: #fff; font-weight: 600; }
+    .btn-cc.ok:hover { background: #c0271d; }
+
+    /* Info box */
+    .info-box { background: var(--warn-s); border: 1px solid #fcd34d; border-radius: 9px; padding: 11px 14px; font-size: .81rem; color: #92400e; line-height: 1.5; margin-bottom: 14px; }
+    .info-box strong { font-weight: 700; }
+
+    /* Toast */
+    #toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 7px; pointer-events: none; }
+    .toast-item { display: flex; align-items: center; gap: 9px; padding: 11px 15px; border-radius: 9px; font-size: .83rem; font-weight: 500; color: #fff; box-shadow: 0 5px 20px rgba(0,0,0,.16); animation: toastIn .26s cubic-bezier(.34,1.3,.64,1) forwards; max-width: 320px; pointer-events: all; }
+    .toast-item.success { background: #0f7a52; }
+    .toast-item.error   { background: #c0271d; }
+    .toast-item.warn    { background: #b45309; }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px) scale(.96); } to { opacity:1; transform:translateX(0) scale(1); } }
+  </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- User bar -->
+  <div id="userBar" style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:9px 16px;margin-bottom:14px;box-shadow:var(--shadow)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div id="userAvatar" style="width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.85rem">?</div>
+      <div>
+        <div id="userNameBar" style="font-size:.85rem;font-weight:600;color:var(--navy)">Cargando...</div>
+        <div id="userRolBar" style="font-size:.7rem;color:var(--text3)">—</div>
+      </div>
+    </div>
+    <button onclick="doLogout()" style="height:30px;padding:0 14px;border:1.5px solid var(--border2);border-radius:7px;background:transparent;font-family:Outfit,sans-serif;font-size:.78rem;font-weight:500;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M5 6H11M9 4l2 2-2 2M7 3V2H1v8h6V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Salir
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="main-tabs" id="mainTabs">
+    <button class="main-tab active" onclick="switchTab('libro')" id="tab-libro">
+      <span class="tab-dot" style="background:#2f6de1"></span>
+      Autos y Sentencias
+      <span class="refresh-badge" id="badgeLibro">↻</span>
+    </button>
+    <button class="main-tab" onclick="switchTab('tablas')" id="tab-tablas">
+      <span class="tab-dot" style="background:#7c3aed"></span>
+      Plazos · Inhabilidades · Licencias
+      <span class="refresh-badge" id="badgeTablas">↻</span>
+    </button>
+    <button class="main-tab" onclick="switchTab('usuarios')" id="tab-usuarios" style="display:none">
+      <span class="tab-dot" style="background:#1a9e6b"></span>
+      Usuarios
+    </button>
+    <a class="main-tab" href="Reportes.html" target="_blank" id="tab-reportes"
+       style="text-decoration:none;margin-left:auto">
+      <span class="tab-dot" style="background:#d97706"></span>
+      Reportes
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="margin-left:3px;opacity:.6"><path d="M1 10L10 1M10 1H4M10 1v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+
+  <!-- ════════════════════════════════
+       TAB 1 — AUTOS Y SENTENCIAS
+  ════════════════════════════════ -->
+  <div class="tab-page active" id="page-libro">
+
+    <div class="page-header">
+      <div>
+        <h2>⚖ Autos y Sentencias</h2>
+        <p id="pageSubtitle">Gestión de expedientes judiciales · Chelo</p>
+      </div>
+      <button class="btn btn-md btn-primary" id="btnNuevoRegistro" onclick="abrirModalNuevo()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Nuevo Registro
+      </button>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-panel">
+      <div class="search-title">🔍 Filtros</div>
+      <div class="search-row">
+        <div class="sf w-text"><label for="busqTexto">Número / Carátula</label><input id="busqTexto" type="text" placeholder="Buscar..."></div>
+        <div class="divider-v"></div>
+        <div class="sf w-date"><label for="busqLlam">Llamamiento exacto</label><input id="busqLlam" type="date"></div>
+        <div class="sf w-date"><label for="busqCanc">Cancelación exacta</label><input id="busqCanc" type="date"></div>
+        <div class="divider-v"></div>
+        <div class="sf" style="flex-direction:row;gap:7px;align-self:flex-end">
+          <button class="btn btn-sm btn-navy" onclick="ejecutarBusqueda()">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Buscar
+          </button>
+          <button class="btn btn-sm btn-outline" onclick="limpiarFiltros()">Limpiar</button>
+        </div>
+      </div>
+      <div class="rango-box">
+        <div class="rango-box-title">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x=".8" y="1.5" width="10.4" height="9" rx="1.8" stroke="currentColor" stroke-width="1.5"/><path d="M3.5.8v1.5M8.5.8v1.5M.8 5h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Rango de fechas
+        </div>
+        <div class="search-row">
+          <div class="sf w-sel"><label for="rangoCol">Columna</label>
+            <select id="rangoCol">
+              <option value="llamamiento">Llamamiento</option>
+              <option value="vencimiento">Vencimiento</option>
+              <option value="cancelacion">Cancelación</option>
+            </select>
+          </div>
+          <div class="sf w-date"><label for="rangoDesde">Desde</label><input id="rangoDesde" type="date"></div>
+          <div class="sf w-date"><label for="rangoHasta">Hasta</label><input id="rangoHasta" type="date"></div>
+          <div class="sf" style="align-self:flex-end">
+            <button class="btn btn-sm btn-primary" onclick="ejecutarBusqueda()">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Buscar rango
+            </button>
+          </div>
+          <div style="align-self:center;font-size:.72rem;color:var(--text3);margin-left:4px">💡 Dejá "Desde" o "Hasta" vacío para buscar sin límite</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="spinner-ring" id="spinner"></div>
+      <div class="status-badge"><span class="status-dot" id="statusDot"></span><span id="statusTxt">Iniciando...</span></div>
+      <div class="sort-note">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M2 7l3.5 3L9 7" stroke="#8896a8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Ordenado por Llamamiento ↓
+      </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="legend-bar">
+      <div class="legend-item"><span class="legend-dot vencido"></span> Expediente vencido (pendiente de cancelar)</div>
+      <div class="legend-item"><span class="legend-dot modificado"></span> Vencimiento recalculado</div>
+      <div class="legend-item"><span class="legend-dot sin-efecto"></span> Sin efecto</div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <table class="libro-table">
+          <colgroup><col class="c-num"><col class="c-car"><col class="c-juz"><col class="c-tipo"><col class="c-llam"><col class="c-venc"><col class="c-canc"><col style="width:9%"><col class="c-obs"><col class="c-acc"></colgroup>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <div class="table-footer-info" id="footerInfo">—</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="footerVencidos" style="font-size:.76rem;color:var(--danger);font-weight:600;display:none"></span>
+          <button class="btn btn-sm btn-success" id="btnVerTodos" onclick="cargarTodos()" style="display:none">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 4h10M1 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Ver todos
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-libro -->
+
+  <!-- ════════════════════════════════
+       TAB 2 — TABLAS DE CONFIGURACIÓN
+  ════════════════════════════════ -->
+  <div class="tab-page" id="page-tablas">
+
+    <div class="page-header">
+      <div>
+        <h2>📋 Tablas de Configuración</h2>
+        <p>Plazos por tipo · Días inhábiles · Licencias de jueces</p>
+      </div>
+    </div>
+
+    <div class="sub-tabs">
+      <button class="sub-tab active plazos"        onclick="switchSubTab('plazos')"       id="stab-plazos">⏱ Plazos</button>
+      <button class="sub-tab inhabilidades"         onclick="switchSubTab('inhabilidades')" id="stab-inhabilidades">🚫 Inhabilidades</button>
+      <button class="sub-tab licencias"             onclick="switchSubTab('licencias')"     id="stab-licencias">📅 Licencias</button>
+    </div>
+
+    <!-- Plazos -->
+    <div class="sub-page active" id="subpage-plazos">
+      <div class="page-header" style="margin-bottom:14px">
+        <p style="font-size:.82rem;color:var(--text3)">Tipos de resolución y sus días hábiles de plazo</p>
+        <button class="btn btn-sm btn-purple" onclick="abrirModalAux('PLAZOS','nuevo')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Agregar Plazo
+        </button>
+      </div>
+      <div class="table-card">
+        <div class="table-scroll" style="max-height:50vh">
+          <table style="table-layout:fixed"><colgroup><col style="width:8%"><col style="width:48%"><col style="width:14%"><col style="width:24%"><col style="width:6%"></colgroup>
+            <thead id="thead-plazos"></thead><tbody id="tbody-plazos"></tbody>
+          </table>
+        </div>
+        <div class="table-footer"><div class="table-footer-info" id="footer-plazos">—</div></div>
+      </div>
+    </div>
+
+    <!-- Inhabilidades -->
+    <div class="sub-page" id="subpage-inhabilidades">
+      <div class="info-box">⚠ <strong>Al agregar, modificar o eliminar</strong> un día inhábil, todos los vencimientos vigentes del LIBRO serán <strong>recalculados automáticamente</strong>.</div>
+      <div class="page-header" style="margin-bottom:14px">
+        <p style="font-size:.82rem;color:var(--text3)">Feriados y días inhábiles (afectan a todos los juzgados)</p>
+        <button class="btn btn-sm btn-danger" onclick="abrirModalAux('INHABILIDADES','nuevo')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Agregar Inhabilidad
+        </button>
+      </div>
+      <div class="table-card">
+        <div class="table-scroll" style="max-height:50vh">
+          <table style="table-layout:fixed"><colgroup><col style="width:20%"><col style="width:70%"><col style="width:10%"></colgroup>
+            <thead id="thead-inhabilidades"></thead><tbody id="tbody-inhabilidades"></tbody>
+          </table>
+        </div>
+        <div class="table-footer"><div class="table-footer-info" id="footer-inhabilidades">—</div></div>
+      </div>
+    </div>
+
+    <!-- Licencias -->
+    <div class="sub-page" id="subpage-licencias">
+      <div class="info-box">⚠ <strong>Al agregar, modificar o eliminar</strong> una licencia, los vencimientos de los expedientes del juzgado correspondiente serán <strong>recalculados automáticamente</strong>.</div>
+      <div class="page-header" style="margin-bottom:14px">
+        <p style="font-size:.82rem;color:var(--text3)">Licencias de jueces — solo afectan al juzgado correspondiente</p>
+        <button class="btn btn-sm btn-teal" onclick="abrirModalAux('LICENCIAS','nuevo')">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Agregar Licencia
+        </button>
+      </div>
+      <div class="table-card">
+        <div class="table-scroll" style="max-height:50vh">
+          <table style="table-layout:fixed"><colgroup><col style="width:15%"><col style="width:45%"><col style="width:30%"><col style="width:10%"></colgroup>
+            <thead id="thead-licencias"></thead><tbody id="tbody-licencias"></tbody>
+          </table>
+        </div>
+        <div class="table-footer"><div class="table-footer-info" id="footer-licencias">—</div></div>
+      </div>
+    </div>
+
+  </div><!-- /page-tablas -->
+
+  <!-- ════════════════════════════════
+       TAB 3 — USUARIOS (solo admin)
+  ════════════════════════════════ -->
+  <div class="tab-page" id="page-usuarios">
+    <div class="page-header">
+      <div>
+        <h2>👥 Gestión de Usuarios</h2>
+        <p>Crear, activar/desactivar y asignar expedientes a usuarios</p>
+      </div>
+      <button class="btn btn-md btn-success" onclick="abrirModalCrearUsuario()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Nuevo Usuario
+      </button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll" style="max-height:70vh">
+        <table style="table-layout:fixed">
+          <colgroup>
+            <col style="width:22%"><col style="width:25%"><col style="width:10%">
+            <col style="width:10%"><col style="width:11%"><col style="width:11%"><col style="width:11%">
+          </colgroup>
+          <thead>
+            <tr style="background:var(--navy)">
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Nombre</th>
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Email</th>
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Rol</th>
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Estado</th>
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Expedientes</th>
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Último acceso</th>
+              <th style="padding:10px 12px;font-size:.68rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,.72);letter-spacing:.07em">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-usuarios">
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">Cargando usuarios...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <div class="table-footer-info" id="footer-usuarios">—</div>
+      </div>
+    </div>
+  </div><!-- /page-usuarios -->
+</div>
+
+<!-- Modal Libro -->
+<div class="modal-overlay" id="modalForm">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrap" id="modalIconWrap"></div>
+        <div><div class="modal-title" id="modalTitle">Nuevo Registro</div><div class="modal-subtitle" id="modalSubtitle"></div></div>
+      </div>
+      <button class="modal-close" onclick="cerrarModalForm()">✕</button>
+    </div>
+    <div class="modal-divider"></div>
+    <div class="modal-body">
+      <form id="formCarga" novalidate>
+        <div class="form-grid">
+          <div class="section-label">Identificación</div>
+          <div class="form-field fg-3"><label>Número <span class="req">*</span></label><input id="inp-numero" type="text" name="numero" placeholder="Ej: 12345/2025" required></div>
+          <div class="form-field fg-9"><label>Carátula <span class="req">*</span></label><input id="inp-caratula" type="text" name="caratula" placeholder="Apellido c/ Apellido s/ ..." required></div>
+          <div class="form-field fg-6">
+            <label>Juzgado <span class="req">*</span></label>
+            <select id="inp-juzgado" name="juzgado" required>
+              <option value="">— Cargando juzgados... —</option>
+            </select>
+          </div>
+          <div class="form-field fg-6">
+            <label>Tipo Resolución <span class="req">*</span></label>
+            <input id="inp-tipo" type="text" name="tipo" list="listaPlazos" placeholder="Seleccionar o escribir..." required>
+            <datalist id="listaPlazos"></datalist>
+          </div>
+          <div class="section-label" style="margin-top:2px">Fechas</div>
+          <div class="form-field fg-4">
+            <label>Llamamiento <span class="req">*</span></label>
+            <input id="inp-llamamiento" type="date" name="llamamiento" required>
+          </div>
+          <div class="form-field fg-4">
+            <label>Vencimiento <span style="font-size:.68rem;color:var(--success);font-weight:500">(calculado automáticamente)</span></label>
+            <input id="inp-vencimiento" type="date" name="vencimiento" readonly>
+            <div class="calc-badge" id="calcBadge"><span class="calc-ring"></span> Calculando vencimiento...</div>
+            <span class="field-note">Depende del tipo de resolución y el juzgado</span>
+          </div>
+          <div class="form-field fg-4"><label>Cancelación</label><input id="inp-cancelacion" type="date" name="cancelacion"></div>
+          <div class="form-field fg-4"><label>Sin Efecto <span style="font-size:.68rem;background:#ede9fe;color:#6b21a8;padding:1px 6px;border-radius:4px;font-weight:600">NUEVO</span></label><input id="inp-sin-efecto" type="date" name="sin_efecto"></div>
+          <div class="section-label" style="margin-top:2px">Asignación</div>
+          <!-- campo asignado movido al modal dedicado de asignación -->
+          <div class="section-label" style="margin-top:2px">Adicional</div>
+          <div class="form-field fg-12"><label>Observación</label><input type="text" name="observacion" placeholder="Notas adicionales..."></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="cerrarModalForm()">Cancelar</button>
+      <button class="btn-modal-save" id="btnGuardar" onclick="submitFormulario()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5l3.5 4 6.5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="btnGuardarTxt">Guardar Registro</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tablas Aux -->
+<div class="modal-overlay" id="modalAux">
+  <div class="modal-card sm">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrap" id="auxIconWrap"></div>
+        <div><div class="modal-title" id="auxTitle"></div><div class="modal-subtitle" id="auxSubtitle"></div></div>
+      </div>
+      <button class="modal-close" onclick="cerrarModalAux()">✕</button>
+    </div>
+    <div class="modal-divider"></div>
+    <div class="modal-body" id="auxBody"></div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="cerrarModalAux()">Cancelar</button>
+      <button class="btn-modal-save" id="btnAuxGuardar" onclick="submitAux()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5l3.5 4 6.5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="btnAuxTxt">Guardar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirm -->
+<!-- ══ Modal Asignación ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalAsignar">
+  <div class="confirm-card" style="max-width:400px">
+    <div class="confirm-icon" style="background:#f0fdf4;color:#16a34a">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 20c0-4 3.6-7 8-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 14v6M15 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <h6 id="asignarTitle">Asignar Expediente</h6>
+    <p id="asignarSubtitle" style="font-size:.82rem;color:var(--text3);margin-bottom:16px"></p>
+    <div class="form-field" style="margin-bottom:20px">
+      <label style="font-size:.75rem;font-weight:600;color:#4a5568;margin-bottom:6px;display:block">Asignar a</label>
+      <select id="asignar-select" style="width:100%;height:40px;border:1.5px solid var(--border);border-radius:9px;padding:0 12px;font-family:Outfit,sans-serif;font-size:.9rem;background:var(--surface)">
+        <option value="">— Cargando usuarios... —</option>
+      </select>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn-cc cancel" onclick="cerrarModalAsignar()">Cancelar</button>
+      <button class="btn-cc ok" id="btnConfirmarAsignar" style="background:#16a34a"
+              onclick="submitAsignar()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3.5 4 6.5-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal Cerrar Expediente (solo usuario) ═══════════════════════════ -->
+<div class="modal-overlay" id="modalCerrar">
+  <div class="confirm-card" style="max-width:420px">
+    <div class="confirm-icon" style="background:#edf8f3;color:#1a9e6b">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10l6 6 8-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h6>Cerrar Expediente</h6>
+    <p style="margin-bottom:8px">Exp. <strong id="cerrarExpNum"></strong> — <span id="cerrarExpCar"></span></p>
+    <div class="form-grid" style="margin-bottom:16px">
+      <div class="form-field fg-6">
+        <label style="font-size:.72rem;font-weight:600;color:#4a5568">Tipo de cierre</label>
+        <select id="cerrar-tipo" style="height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-family:Outfit,sans-serif;font-size:.83rem">
+          <option value="cancelacion">✓ Cancelación</option>
+          <option value="sin_efecto">✦ Sin Efecto</option>
+        </select>
+      </div>
+      <div class="form-field fg-6">
+        <label style="font-size:.72rem;font-weight:600;color:#4a5568">Fecha</label>
+        <input id="cerrar-fecha" type="date" style="height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-family:Outfit,sans-serif;font-size:.83rem">
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn-cc cancel" onclick="cerrarModalCerrar()">Cancelar</button>
+      <button class="btn-cc ok" style="background:var(--success)" onclick="submitCerrarExpediente()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6l3.5 4 6.5-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Confirmar cierre
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalConfirm">
+  <div class="confirm-card">
+    <div class="confirm-icon danger">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5.5h14M7.5 5.5V4h5v1.5M5 5.5l.9 11h8.2l.9-11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 9v5M12 9v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </div>
+    <h6>Eliminar registro</h6>
+    <p id="confirmMsg">¿Estás segura?</p>
+    <p id="confirmSubMsg" style="font-size:.76rem;color:var(--warn);margin-top:-12px;margin-bottom:16px;display:none"></p>
+    <div class="confirm-actions">
+      <button class="btn-cc cancel" onclick="cerrarModalConfirm()">Cancelar</button>
+      <button class="btn-cc ok" id="btnConfirmarEliminar">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3.5h8M4.5 3.5V2.5h3v1M3 3.5l.6 7h4.8l.6-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Crear Usuario (solo admin) -->
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal-card sm">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrap" style="background:#edf8f3;color:#1a9e6b">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 14c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13 7v4M15 9h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <div><div class="modal-title" id="usuarioModalTitle">Nuevo Usuario</div><div class="modal-subtitle">El usuario recibirá acceso al sistema</div></div>
+      </div>
+      <button class="modal-close" onclick="cerrarModalUsuario()">✕</button>
+    </div>
+    <div class="modal-divider"></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field fg-12"><label>Nombre completo <span class="req">*</span></label><input id="u-nombre" type="text" placeholder="Ej: Dra. María González"></div>
+        <div class="form-field fg-12"><label>Correo electrónico <span class="req">*</span></label><input id="u-email" type="email" placeholder="usuario@ejemplo.com"></div>
+        <div class="form-field fg-6">
+          <label>Rol <span class="req">*</span></label>
+          <select id="u-rol">
+            <option value="usuario">👤 Usuario (acceso restringido)</option>
+            <option value="admin">👑 Admin (acceso completo)</option>
+          </select>
+        </div>
+        <div class="form-field fg-6"><label>Contraseña temporal <span class="req">*</span></label><input id="u-pass" type="password" placeholder="Mín. 8 caracteres"></div>
+        <div class="form-field fg-12 section-label" style="margin-top:4px">Nota</div>
+        <div class="fg-12" style="font-size:.78rem;color:var(--text3);padding:8px 12px;background:var(--accent-s);border-radius:8px;line-height:1.5">
+          ℹ El usuario podrá ver solo los expedientes que le asignes. Podés asignar expedientes desde el botón <strong>Asignar</strong> en la tabla principal.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="cerrarModalUsuario()">Cancelar</button>
+      <button class="btn-modal-save" style="background:var(--success)" id="btnGuardarUsuario" onclick="submitCrearUsuario()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5l3.5 4 6.5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="btnGuardarUsuarioTxt">Crear Usuario</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-wrap"></div>
+
+<script>
+  /* ══════ Estado global ══════ */
+  let editandoFilaId  = null;
+  let totalRegistros  = 0;
+  let _pendingDelete  = null;
+  let _modoPaginacion = "parcial"; // "parcial" | "todos" | "busqueda"
+  let _cabecera       = null;
+  let _libroNecesitaRefresh = false;
+  let _vencimientosRecalculados = new Set();
+  let _usuariosMap = {};  // { uuid: 'Nombre Apellido' } — para mostrar chip en tabla
+  const TODAY_STR = new Date().toISOString().slice(0,10);
+
+  /* ══ SUPABASE ══ Reemplazá con tus credenciales ══════════════════════
+     Project Settings → API → Project URL  +  anon public key           */
+  const SUPABASE_URL = 'https://lnmnwuigvcouzoteapjy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxubW53dWlndmNvdXpvdGVhcGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzAzMzcsImV4cCI6MjA4NzY0NjMzN30.FFpmVyVwej46kRo8zvXusr3D7o3MtuISKer5M0hSgiQ';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  /* ══ Verificar sesión Supabase ══════════════════════════════════════ */
+  (async function checkSession() {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    const { data: perfil } = await db.from('perfiles')
+      .select('rol,nombre_completo,activo').eq('id', session.user.id).single();
+    if (!perfil || !perfil.activo) {
+      await db.auth.signOut(); window.location.href = 'index.html'; return;
+    }
+    sessionStorage.setItem('userRol',  perfil.rol);
+    sessionStorage.setItem('userName', perfil.nombre_completo);
+    sessionStorage.setItem('userId',   session.user.id);
+  })();
+
+  // ── ROLES v2.0 ── (let para que se actualicen tras checkSession)
+  let ROL       = sessionStorage.getItem('userRol')  || 'usuario';
+  let USER_NAME = sessionStorage.getItem('userName') || 'Usuario';
+  let USER_ID   = sessionStorage.getItem('userId')   || null;
+  let ES_ADMIN  = ROL === 'admin';
+
+  // Tablas aux
+  let auxHoja   = null;
+  let auxModo   = null;
+  let auxFilaId = null;
+
+  const $ = id => document.getElementById(id);
+
+  /* ══════ Inicialización de rol ══════ */
+  function inicializarRol() {
+    // La sesión se valida con Supabase (bloque async arriba).
+    // Si sessionStorage aún no tiene datos, esperamos que termine.
+    if (!sessionStorage.getItem('userRol')) {
+      setTimeout(inicializarRol, 300); return;
+    }
+    // Re-leer los valores: pueden haber cambiado si checkSession acaba de correr
+    ROL       = sessionStorage.getItem('userRol')  || 'usuario';
+    USER_NAME = sessionStorage.getItem('userName') || 'Usuario';
+    USER_ID   = sessionStorage.getItem('userId')   || null;
+    ES_ADMIN  = ROL === 'admin';
+    // User bar
+    $('userNameBar').textContent = USER_NAME;
+    $('userRolBar').textContent  = ES_ADMIN ? '👑 Administrador' : '👤 Usuario';
+    $('userAvatar').textContent  = USER_NAME.charAt(0).toUpperCase();
+
+    // Mostrar/ocultar elementos según rol
+    $('btnNuevoRegistro').style.display = ES_ADMIN ? 'inline-flex' : 'none';
+    $('tab-tablas').style.display       = ES_ADMIN ? '' : 'none';
+    $('tab-usuarios').style.display     = ES_ADMIN ? '' : 'none';
+    $('tab-reportes').style.display     = ES_ADMIN ? '' : 'none';
+
+    if (ES_ADMIN) {
+      $('pageSubtitle').textContent = 'Gestión completa de expedientes · Administrador';
+      cargarMapaUsuarios();   // solo necesario para admin (chips en tabla)
+    } else {
+      $('pageSubtitle').textContent = `Mis expedientes asignados · ${USER_NAME}`;
+    }
+  }
+
+  async function doLogout() {
+    try { await db.auth.signOut(); } catch(e) {}
+    sessionStorage.clear();
+    window.location.href = 'index.html';
+  }
+
+  /* ══════ Navegación ══════ */
+  function switchTab(tab) {
+    ['libro','tablas','usuarios'].forEach(t => {
+      const pg = $(`page-${t}`); const tb = $(`tab-${t}`);
+      if (pg) pg.classList.toggle('active', t === tab);
+      if (tb) tb.classList.toggle('active', t === tab);
+    });
+    if (tab === 'libro') {
+      _libroNecesitaRefresh = false;
+      $('tab-libro').classList.remove('needs-refresh');
+      cargarDatosIniciales(true);  // siempre refresca al volver al libro
+    }
+    if (tab === 'tablas') {
+      const activeSub = document.querySelector('.sub-tab.active');
+      const nombre = activeSub ? activeSub.id.replace('stab-','').toUpperCase() : 'PLAZOS';
+      cargarTablaAux(nombre);
+    }
+    if (tab === 'usuarios') cargarUsuarios();
+  }
+
+  function switchSubTab(nombre) {
+    ['plazos','inhabilidades','licencias'].forEach(n => {
+      $(`stab-${n}`).classList.toggle('active', n === nombre);
+      $(`subpage-${n}`).classList.toggle('active', n === nombre);
+    });
+    cargarTablaAux(nombre.toUpperCase());
+  }
+
+  /* ══════ Helpers UI ══════ */
+  function showSpinner() { $('spinner').style.display = 'block'; }
+  function hideSpinner() { $('spinner').style.display = 'none'; }
+  function setStatus(msg, color) { $('statusTxt').textContent = msg; $('statusDot').style.background = color || '#94a3b8'; }
+
+  function toast(msg, tipo = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast-item ${tipo}`;
+    const ico = {
+      success: '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5l4 4 6-6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      error:   '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2l9 9M11 2l-9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      warn:    '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 2v5M6.5 9.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    }[tipo] || '';
+    el.innerHTML = ico;
+    el.appendChild(document.createTextNode(msg));
+    $('toast-wrap').appendChild(el);
+    setTimeout(() => { el.style.cssText += 'opacity:0;transform:translateX(16px);transition:all .28s'; setTimeout(() => el.remove(), 290); }, 3500);
+  }
+
+  function fmtDate(s) {
+    if (!s || !String(s).includes('/')) return '';
+    const [d,m,y] = String(s).split('/');
+    return `${y}-${m}-${d}`;
+  }
+
+  // Convierte "dd/MM/yyyy" a objeto Date para comparar con hoy
+  function parseFechaMostrada(s) {
+    if (!s) return null;
+    const parts = String(s).split('/');
+    if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    return null;
+  }
+
+  /* ══════ Tabla LIBRO ══════ */
+  const DATE_COLS = { 4:'llamamiento', 5:'vencimiento', 6:'cancelacion' };
+
+  function dibujarCabecera(cols) {
+    if (!cols) return;
+    _cabecera = cols;
+    const tr = document.createElement('tr');
+    cols.forEach(c => {
+      const th = document.createElement('th');
+      th.textContent = c.replace('_',' ');
+      if (c.toUpperCase().includes('LLAM')) th.className = 'th-llam';
+      tr.appendChild(th);
+    });
+    const thAcc = document.createElement('th'); thAcc.textContent = 'Acciones';
+    tr.appendChild(thAcc);
+    $('thead').innerHTML = '';
+    $('thead').appendChild(tr);
+  }
+
+  function dibujarFilas(filas) {
+    const tbody = $('tbody');
+    if (!filas || filas.length === 0) {
+      const nc = document.querySelectorAll('#thead th').length || 10;
+      tbody.innerHTML = `<tr><td colspan="${nc}"><div class="empty-state">
+        <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect x="5" y="7" width="28" height="24" rx="3" stroke="#94a3b8" stroke-width="1.7"/><path d="M12 15h14M12 21h9M12 27h5" stroke="#94a3b8" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <p>No se encontraron resultados</p></div></td></tr>`;
+      $('footerVencidos').style.display = 'none';
+      return;
+    }
+
+    const hoy = new Date(TODAY_STR + 'T00:00:00');
+    let vencidosCount = 0;
+
+    const frag = document.createDocumentFragment();
+    filas.forEach(fila => {
+      const idFila  = fila[9];  // UUID del expediente (fila[10]=asignado_a)
+      const vencStr = fila[5];
+      const cancStr = fila[6];
+      // Índice 7 = Sin Efecto (nueva columna), índice 8 = Observación
+      const seStr   = fila[7] || '';
+      const vencDate = parseFechaMostrada(vencStr);
+      const cancelado = cancStr && String(cancStr).trim() !== '';
+      const sinEfecto = seStr && String(seStr).trim() !== '';
+
+      const estaVencido   = !cancelado && !sinEfecto && vencDate && vencDate < hoy;
+      const fueRecalculado = _vencimientosRecalculados.has(idFila);
+
+      if (estaVencido) vencidosCount++;
+
+      const tr = document.createElement('tr');
+      if (estaVencido)    tr.classList.add('row-vencida');
+      if (fueRecalculado) tr.classList.add('row-modificada');
+      if (sinEfecto)      tr.classList.add('row-sin-efecto');
+      if (cancelado)      tr.style.opacity = '.7';
+
+      // Cols: 0=num, 1=car, 2=juz, 3=tipo, 4=llam, 5=venc, 6=canc, 7=sinefecto, 8=obs
+      const displayData = fila.slice(0, 9);
+      displayData.forEach((c, i) => {
+        const td = document.createElement('td');
+        if (i === 1) td.className = 'td-wrap';
+
+        if (i === 5 && c) {
+          const chip = document.createElement('span');
+          chip.className = 'date-chip vencimiento';
+          if (estaVencido) {
+            chip.classList.add('vencida');
+            chip.innerHTML = `<i class="chip-icon">⚠</i>${c}`;
+          } else if (fueRecalculado) {
+            chip.classList.add('modificada');
+            chip.textContent = c;
+            const badge = document.createElement('span');
+            badge.className = 'badge-recalc';
+            badge.innerHTML = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1 4.5C1 2.57 2.57 1 4.5 1c1.1 0 2.08.5 2.73 1.27M8 4.5C8 6.43 6.43 8 4.5 8c-1.1 0-2.08-.5-2.73-1.27" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7 1.5v2H5M2 7.5H4v-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Recalc.`;
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex-wrap:wrap';
+            wrap.appendChild(chip); wrap.appendChild(badge);
+            td.appendChild(wrap); tr.appendChild(td); return;
+          } else { chip.textContent = c; }
+          td.appendChild(chip);
+        } else if (i === 6 && c) {
+          const chip = document.createElement('span');
+          chip.className = 'date-chip cancelacion';
+          chip.textContent = c;
+          td.appendChild(chip);
+        } else if (i === 7 && c) {
+          const chip = document.createElement('span');
+          chip.className = 'date-chip sin-efecto';
+          chip.innerHTML = `✦ ${c}`;
+          td.appendChild(chip);
+        } else if (i === 4 && c) {
+          const chip = document.createElement('span');
+          chip.className = 'date-chip llamamiento';
+          chip.textContent = c;
+          td.appendChild(chip);
+        } else { td.textContent = c ?? ''; }
+        tr.appendChild(td);
+      });
+
+      // Acciones — dependen del rol
+      const tdAcc = document.createElement('td');
+      const div = document.createElement('div'); div.className = 'action-btns';
+
+      if (ES_ADMIN) {
+        // Admin: chip asignado + botón Editar + botón Asignar + botón Eliminar
+        const asignadoId = fila[10] || null;
+        const chip = document.createElement('span');
+        if (asignadoId && _usuariosMap[asignadoId]) {
+          chip.style.cssText = 'font-size:.68rem;background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle';
+          chip.title = 'Asignado a: ' + _usuariosMap[asignadoId];
+          chip.textContent = '👤 ' + _usuariosMap[asignadoId].split(' ')[0];
+        } else {
+          chip.style.cssText = 'font-size:.68rem;background:#f1f5f9;color:#94a3b8;padding:2px 8px;border-radius:99px;font-weight:500;white-space:nowrap;display:inline-block;vertical-align:middle';
+          chip.textContent = 'Sin asignar';
+        }
+        div.appendChild(chip);
+        // Separador visual
+        const sep = document.createElement('span');
+        sep.style.cssText = 'width:1px;height:18px;background:var(--border);display:inline-block;vertical-align:middle;margin:0 2px';
+        div.appendChild(sep);
+        const btnE = document.createElement('button'); btnE.className = 'btn-icon edit'; btnE.title = 'Modificar expediente';
+        btnE.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 9.5V12h2.5l6-6-2.5-2.5L1 9.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 2.5l1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+        btnE.addEventListener('click', () => abrirModalEditar(idFila, fila));
+        // Botón Asignar (persona con +)
+        const btnA = document.createElement('button'); btnA.className = 'btn-icon'; btnA.title = 'Asignar a usuario';
+        btnA.style.cssText = 'background:#f0fdf4;color:#16a34a;border:1.5px solid #bbf7d0';
+        btnA.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 20c0-4 3.6-7 8-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 14v6M15 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+        btnA.addEventListener('click', () => abrirModalAsignar(idFila, fila));
+        const btnD = document.createElement('button'); btnD.className = 'btn-icon del'; btnD.title = 'Eliminar';
+        btnD.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 4h9M5 4V3h3v1M3 4l.7 7.5h5.6L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5v3M7.5 6.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+        btnD.addEventListener('click', () => confirmarEliminar(idFila, 'libro'));
+        div.appendChild(btnE); div.appendChild(btnA); div.appendChild(btnD);
+      } else {
+        // Usuario: solo puede marcar cancelacion o sin_efecto (si no está ya cerrado)
+        if (!cancelado && !sinEfecto) {
+          const btnC = document.createElement('button');
+          btnC.className = 'btn-icon';
+          btnC.style.cssText = 'color:#1a9e6b;border-color:#a7f3d0;background:#edf8f3';
+          btnC.title = 'Marcar Cancelación / Sin Efecto';
+          btnC.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5l4 4 6-6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          btnC.addEventListener('click', () => abrirModalCerrar(idFila, fila));
+          div.appendChild(btnC);
+        } else {
+          const span = document.createElement('span');
+          span.style.cssText = 'font-size:.7rem;color:var(--text3);padding:3px 6px';
+          span.textContent = cancelado ? '✓ Cancelado' : '✦ Sin efecto';
+          div.appendChild(span);
+        }
+      }
+      tdAcc.appendChild(div); tr.appendChild(tdAcc);
+      frag.appendChild(tr);
+    });
+
+    tbody.innerHTML = ''; tbody.appendChild(frag);
+
+    const fv = $('footerVencidos');
+    if (vencidosCount > 0) {
+      fv.textContent = `⚠ ${vencidosCount} expediente${vencidosCount > 1 ? 's' : ''} vencido${vencidosCount > 1 ? 's' : ''}`;
+      fv.style.display = 'inline';
+    } else { fv.style.display = 'none'; }
+  }
+
+  function actualizarFooter(mostrando, total, modoTodos) {
+    $('footerInfo').innerHTML = `Mostrando <strong>${mostrando}</strong> de <strong>${total}</strong> registros`;
+    const btn = $('btnVerTodos');
+    if (!modoTodos && total > mostrando) {
+      btn.style.display = 'inline-flex';
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 4h10M1 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Ver los ${total} registros`;
+    } else btn.style.display = 'none';
+    _modoPaginacion = modoTodos ? 'todos' : 'parcial';
+  }
+
+  // Refresca la tabla manteniendo el modo actual (parcial/todos/búsqueda)
+  function refreshTabla() {
+    // Preserva badges de recalculado con mantenerRecalculados=true
+    if (_modoPaginacion === 'todos') {
+      cargarTodos();
+    } else {
+      cargarDatosIniciales(true);
+    }
+  }
+
+  /* ══════ Carga de datos ══════ */
+
+  /* ── Convierte fila de v_expedientes al array que usa dibujarFilas() ── */
+  function isoToDisp(iso) {
+    if (!iso) return '';
+    const [y,m,d] = String(iso).split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function expToFila(e) {
+    const fmt = iso => {
+      if (!iso) return '';
+      const [y,m,d] = String(iso).split('-');
+      return `${d}/${m}/${y}`;
+    };
+    return [
+      e.numero       || '',
+      e.caratula     || '',
+      (e.juzgado_prefijo||'') + (e.juez_nombre ? ' · '+e.juez_nombre : ''),
+      e.tipo_nombre  || '',
+      fmt(e.fecha_llamamiento),
+      fmt(e.fecha_vencimiento),
+      fmt(e.fecha_cancelacion),
+      fmt(e.fecha_sin_efecto),
+      e.observacion  || '',
+      e.id,          // [9] UUID — usado por editar/eliminar
+      e.asignado_a || null  // [10] UUID del usuario asignado
+    ];
+  }
+
+
+  /* ══ Precarga el mapa uuid→nombre para chips en tabla ══ */
+  async function cargarMapaUsuarios() {
+    try {
+      const { data } = await db.from('perfiles').select('id,nombre_completo').eq('activo', true);
+      _usuariosMap = {};
+      (data || []).forEach(u => { _usuariosMap[u.id] = u.nombre_completo; });
+    } catch(e) { console.warn('No se pudo cargar mapa de usuarios:', e.message); }
+  }
+
+  /* ══ Carga opciones de usuarios en un <select> ══
+     selectedId = UUID del usuario actualmente asignado (para editar) */
+  async function cargarSelectUsuarios(selectEl, selectedId) {
+    selectEl.innerHTML = '<option value="">— Sin asignar —</option>';
+    try {
+      const { data } = await db.from('perfiles')
+        .select('id,nombre_completo,rol')
+        .eq('activo', true)
+        .order('nombre_completo');
+      (data || []).forEach(u => {
+        const op = document.createElement('option');
+        op.value       = u.id;
+        op.textContent = u.nombre_completo + (u.rol === 'admin' ? ' 👑' : '');
+        if (u.id === selectedId) op.selected = true;
+        selectEl.appendChild(op);
+      });
+    } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
+  }
+
+
+  // ══ Modal Asignación ══════════════════════════════════════════════════════
+  let _asignarFilaId = null;
+
+  async function abrirModalAsignar(id, fila) {
+    _asignarFilaId = id;
+    $('asignarTitle').textContent  = 'Asignar · Exp. ' + fila[0];
+    $('asignarSubtitle').textContent = String(fila[1]).substring(0, 55) + (fila[1].length > 55 ? '…' : '');
+    const sel = $('asignar-select');
+    sel.innerHTML = '<option value="">— Sin asignar —</option>';
+    // Cargar usuarios activos
+    const { data } = await db.from('perfiles')
+      .select('id,nombre_completo,rol')
+      .eq('activo', true)
+      .order('nombre_completo');
+    (data || []).forEach(u => {
+      const op = document.createElement('option');
+      op.value = u.id;
+      op.textContent = (u.rol === 'admin' ? '👑 ' : '👤 ') + u.nombre_completo;
+      if (u.id === (fila[10] || '')) op.selected = true;
+      sel.appendChild(op);
+    });
+    $('modalAsignar').classList.add('open');
+  }
+
+  function cerrarModalAsignar() {
+    $('modalAsignar').classList.remove('open');
+    _asignarFilaId = null;
+  }
+
+  function submitAsignar() {
+    if (!_asignarFilaId) return;
+    const usuarioId = $('asignar-select').value || null; // null = sin asignar
+    $('btnConfirmarAsignar').disabled = true;
+    showSpinner();
+    (async () => {
+      try {
+        // Usar el RPC asignar_expediente (SECURITY DEFINER, solo admin)
+        const { data: res, error } = await db.rpc('asignar_expediente', {
+          p_expediente_id: _asignarFilaId,
+          p_usuario_id:    usuarioId   // null = desasignar
+        });
+        hideSpinner();
+        $('btnConfirmarAsignar').disabled = false;
+        if (error) { toast('Error: ' + error.message, 'error'); return; }
+        if (res && res.ok === false) { toast(res.msg || 'No se pudo asignar.', 'error'); return; }
+        const nombre = usuarioId
+          ? ($('asignar-select').options[$('asignar-select').selectedIndex]?.textContent || 'el usuario')
+          : 'Sin asignar';
+        toast('Asignado a: ' + nombre, 'success');
+        cerrarModalAsignar();
+        if (ES_ADMIN) await cargarMapaUsuarios(); // actualiza chips
+        refreshTabla();              // refresca tabla manteniendo modo
+      } catch(e) {
+        hideSpinner();
+        $('btnConfirmarAsignar').disabled = false;
+        toast(e.message, 'error');
+      }
+    })();
+  }
+
+  window.onload = () => { inicializarRol(); cargarDatosIniciales(); cargarListaPlazos(); cargarListaJuzgados(); };
+
+  function cargarDatosIniciales(mantenerRecalculados) {
+    // Si no se pide mantener el Set, lo limpiamos (carga normal sin highlight)
+    if (!mantenerRecalculados) _vencimientosRecalculados.clear();
+    setStatus('Conectando...', '#f59e0b'); showSpinner();
+    (async () => {
+      try {
+        let _q1 = db.from('v_expedientes').select('*').order('fecha_llamamiento', { ascending: false });
+        if (!ES_ADMIN && USER_ID) _q1 = _q1.eq('asignado_a', USER_ID);
+        const { data, error } = await _q1.limit(50);
+        hideSpinner();
+        if (error) { setStatus('Error: ' + error.message, '#e0362a'); toast(error.message, 'error'); return; }
+        const filas = data.map(expToFila);
+        totalRegistros = filas.length;
+        if (!_cabecera) dibujarCabecera(['NUMERO','CARATULA','JUZGADO','TIPO','LLAMAMIENTO','VENCIMIENTO','CANCELACION','SIN EFECTO','OBSERVACION']);
+        dibujarFilas(filas);
+        setStatus(`${filas.length} registros · Llamamiento ↓`, '#1a9e6b');
+        actualizarFooter(filas.length, filas.length, false);
+      } catch(e) { hideSpinner(); setStatus('Error', '#e0362a'); toast(e.message, 'error'); }
+    })();
+  }
+
+  function cargarTodos() {
+    setStatus('Cargando todos...', '#f59e0b'); showSpinner(); $('btnVerTodos').disabled = true;
+    (async () => {
+      try {
+        let _q2 = db.from('v_expedientes').select('*').order('fecha_llamamiento', { ascending: false });
+        if (!ES_ADMIN && USER_ID) _q2 = _q2.eq('asignado_a', USER_ID);
+        const { data, error } = await _q2.limit(5000);
+        hideSpinner(); $('btnVerTodos').disabled = false;
+        if (error) { setStatus('Error', '#e0362a'); toast(error.message, 'error'); return; }
+        const filas = data.map(expToFila);
+        dibujarFilas(filas);
+        setStatus(`${filas.length} registros · Llamamiento ↓`, '#1a9e6b');
+        actualizarFooter(filas.length, filas.length, true);
+      } catch(e) { hideSpinner(); $('btnVerTodos').disabled = false; toast(e.message, 'error'); }
+    })();
+  }
+
+  function cargarListaPlazos() {
+    (async () => {
+      const { data } = await db.from('tipos_resolucion').select('nombre').eq('activo', true);
+      if (!data) return;
+      const dl = $('listaPlazos'); dl.innerHTML = '';
+      data.forEach(t => { const op = document.createElement('option'); op.value = t.nombre; dl.appendChild(op); });
+    })();
+  }
+
+  // Carga juzgados desde Supabase y llena el select + _juzgadosCache para licencias
+  let _juzgadosCache = []; // [{id, prefijo, juez_nombre}]
+  async function cargarListaJuzgados() {
+    const { data } = await db.from('juzgados').select('id,prefijo,juez_nombre').order('prefijo');
+    if (!data || !data.length) return;
+    _juzgadosCache = data;
+    // Llenar select de expedientes
+    const sel = $('inp-juzgado');
+    sel.innerHTML = '<option value="">— Seleccionar juzgado —</option>';
+    data.forEach(j => {
+      const op = document.createElement('option');
+      op.value = j.prefijo + '_' + j.juez_nombre;
+      op.textContent = j.prefijo + ' · ' + j.juez_nombre;
+      sel.appendChild(op);
+    });
+    // Actualizar opciones del config de LICENCIAS para el campo Juez
+    // Actualizar opciones del campo Juez en LICENCIAS
+    const campoJuez = AUX_CONFIG.LICENCIAS.campos.find(c => c.name === 'juez');
+    if (campoJuez) campoJuez.opciones = data.map(j => j.prefijo + '_' + j.juez_nombre);
+  }
+
+  /* ══════ Búsqueda ══════ */
+  function ejecutarBusqueda() {
+    const desde = $('rangoDesde').value, hasta = $('rangoHasta').value;
+    if (desde && hasta && desde > hasta) { toast('"Desde" no puede ser mayor que "Hasta"', 'error'); return; }
+    showSpinner(); setStatus('Buscando...', '#f59e0b');
+    const filtros = { texto: $('busqTexto').value.trim(), llamamiento: $('busqLlam').value, cancelacion: $('busqCanc').value, rangoCol: $('rangoCol').value, rangoDesde: desde, rangoHasta: hasta };
+    (async () => {
+      try {
+        let q = db.from('v_expedientes').select('*').order('fecha_llamamiento', { ascending: false });
+        if (!ES_ADMIN && USER_ID) q = q.eq('asignado_a', USER_ID);
+        q = q.limit(5000);
+        if (filtros.texto) q = q.or(`numero.ilike.%${filtros.texto}%,caratula.ilike.%${filtros.texto}%`);
+        if (filtros.llamamiento) q = q.eq('fecha_llamamiento', filtros.llamamiento);
+        if (filtros.cancelacion) q = q.eq('fecha_cancelacion', filtros.cancelacion);
+        const colMap = { llamamiento:'fecha_llamamiento', vencimiento:'fecha_vencimiento', cancelacion:'fecha_cancelacion' };
+        const col = colMap[filtros.rangoCol] || 'fecha_llamamiento';
+        if (filtros.rangoDesde) q = q.gte(col, filtros.rangoDesde);
+        if (filtros.rangoHasta) q = q.lte(col, filtros.rangoHasta);
+        const { data, error } = await q;
+        hideSpinner();
+        if (error) { setStatus('Error', '#e0362a'); toast(error.message, 'error'); return; }
+        const filas = (data || []).map(expToFila);
+        dibujarFilas(filas);
+        setStatus(`${filas.length} resultado(s) · Llamamiento ↓`, filas.length ? '#1a9e6b' : '#94a3b8');
+        actualizarFooter(filas.length, filas.length, true);
+        _modoPaginacion = 'busqueda';
+      } catch(e) { hideSpinner(); setStatus('Error', '#e0362a'); toast(e.message, 'error'); }
+    })();
+  }
+
+  function limpiarFiltros() {
+    ['busqTexto','busqLlam','busqCanc','rangoDesde','rangoHasta'].forEach(id => $(id).value = '');
+    $('rangoCol').value = 'llamamiento';
+    cargarDatosIniciales();
+  }
+
+  /* ══════ Modal Libro ══════ */
+  function abrirModalNuevo() {
+    editandoFilaId = null;
+    $('formCarga').reset();
+    document.querySelectorAll('#formCarga input, #formCarga select').forEach(i => i.classList.remove('invalid'));
+    $('inp-vencimiento').value = '';
+    $('calcBadge').classList.remove('visible');
+    $('modalIconWrap').className = 'modal-icon-wrap new';
+    $('modalIconWrap').innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`;
+    $('modalTitle').textContent    = 'Nuevo Registro';
+    $('modalSubtitle').textContent = 'Completá los datos del expediente';
+    $('btnGuardar').className      = 'btn-modal-save';
+    $('btnGuardarTxt').textContent = 'Guardar Registro';
+    $('btnGuardar').disabled       = false;
+    $('modalForm').classList.add('open');
+    setTimeout(() => $('inp-numero').focus(), 260);
+  }
+
+  function abrirModalEditar(id, datos) {
+    editandoFilaId = id;
+    $('formCarga').reset();
+    document.querySelectorAll('#formCarga input, #formCarga select').forEach(i => i.classList.remove('invalid'));
+    const form = $('formCarga');
+    form.numero.value      = datos[0];
+    form.caratula.value    = datos[1];
+    // datos[2] tiene formato "13F · Dra. Guerrero" pero el select usa "13F_Dra. Guerrero"
+    // Extraer el prefijo (ej: "13F") y buscar la option que empiece con ese prefijo
+    // Seleccionar juzgado por prefijo (ej: "13F") en las opciones cargadas desde DB
+    const prefEditar = (datos[2] || '').match(/(\d+F)/i)?.[1]?.toUpperCase() || '';
+    let juzgadoSet = false;
+    Array.from(form.juzgado.options).forEach(opt => {
+      if (opt.value.toUpperCase().startsWith(prefEditar)) { form.juzgado.value = opt.value; juzgadoSet = true; }
+    });
+    // Si las opciones aún no cargaron (cargarListaJuzgados es async), reintentar
+    if (!juzgadoSet && prefEditar) {
+      cargarListaJuzgados().then(() => {
+        Array.from(form.juzgado.options).forEach(opt => {
+          if (opt.value.toUpperCase().startsWith(prefEditar)) form.juzgado.value = opt.value;
+        });
+      });
+    }
+    form.tipo.value        = datos[3];
+    form.llamamiento.value = fmtDate(datos[4]);
+    form.vencimiento.value = fmtDate(datos[5]);
+    form.cancelacion.value = fmtDate(datos[6]);
+    // Cargar sin_efecto en el form para que no se sobreescriba al guardar
+    const inpSe = $('inp-sin-efecto');
+    if (inpSe) inpSe.value = fmtDate(datos[7]);
+    form.observacion.value = datos[8] || '';
+    // Mostrar campo asignación (solo admin) y cargar opciones
+    // asignación se gestiona desde el botón dedicado en tabla
+    $('modalIconWrap').className = 'modal-icon-wrap edit';
+    $('modalIconWrap').innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12V14.5h2.5l7-7-2.5-2.5L2 12z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 3l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+    $('modalTitle').textContent    = 'Modificar Registro';
+    $('modalSubtitle').textContent = `Fila ${id}`;
+    $('btnGuardar').className      = 'btn-modal-save warn-mode';
+    $('btnGuardarTxt').textContent = 'Actualizar Cambios';
+    $('btnGuardar').disabled       = false;
+    $('calcBadge').classList.remove('visible');
+    $('modalForm').classList.add('open');
+    setTimeout(() => $('inp-caratula').focus(), 260);
+  }
+
+  function cerrarModalForm() { $('modalForm').classList.remove('open'); editandoFilaId = null; }
+
+  /* ── Cálculo automático (ahora incluye juzgado) ── */
+  let _calcTimer = null;
+  function triggerCalculo() {
+    const tipo    = $('inp-tipo').value.trim();
+    const llam    = $('inp-llamamiento').value;
+    const juzgado = $('inp-juzgado').value;
+    if (!tipo || !llam || !juzgado) return;
+    clearTimeout(_calcTimer);
+    $('calcBadge').classList.add('visible');
+    $('inp-vencimiento').value = '';
+    _calcTimer = setTimeout(() => {
+      (async () => {
+        try {
+          const pref = juzgado.match(/(\d+F)/i)?.[1]?.toUpperCase() || '';
+          const { data: jRow } = await db.from('juzgados').select('id').eq('prefijo', pref).single();
+          const { data: tRow } = await db.from('tipos_resolucion').select('id').ilike('nombre', tipo).single();
+          if (!jRow || !tRow) { $('calcBadge').classList.remove('visible'); toast('Tipo o juzgado no encontrado', 'warn'); return; }
+          const { data: fecha } = await db.rpc('calcular_vencimiento', {
+            p_llamamiento: llam, p_tipo_id: tRow.id, p_juzgado_id: jRow.id
+          });
+          $('calcBadge').classList.remove('visible');
+          $('inp-vencimiento').value = fecha || '';
+          if (!fecha) toast('No se encontró plazo para ese tipo de resolución', 'warn');
+        } catch(e) { $('calcBadge').classList.remove('visible'); }
+      })();
+    }, 600);
+  }
+  $('inp-tipo').addEventListener('change', triggerCalculo);
+  $('inp-tipo').addEventListener('input',  triggerCalculo);
+  $('inp-llamamiento').addEventListener('change', triggerCalculo);
+  $('inp-juzgado').addEventListener('change', triggerCalculo);
+
+  /* ── Submit Libro ── */
+  function submitFormulario() {
+    let ok = true;
+    ['inp-numero','inp-caratula','inp-llamamiento','inp-tipo','inp-juzgado'].forEach(id => {
+      const el = $(id);
+      if (!el.value.trim()) { el.classList.add('invalid'); ok = false; }
+      else el.classList.remove('invalid');
+    });
+    if (!ok) { toast('Completá los campos obligatorios (*)', 'error'); return; }
+    const btn = $('btnGuardar'); btn.disabled = true; showSpinner();
+    const data = Object.fromEntries(new FormData($('formCarga')));
+    const onOk  = res => { hideSpinner(); btn.disabled = false; if (!res.ok) { toast(res.msg, 'error'); return; } toast(res.msg, 'success'); cerrarModalForm(); refreshTabla(); };
+    const onErr = err => { hideSpinner(); btn.disabled = false; toast(err.message, 'error'); };
+    (async () => {
+      try {
+        const pref   = (data['inp-juzgado'] || data.juzgado || '').match(/(\d+F)/i)?.[1]?.toUpperCase() || '';
+        const tipoNm = (data['inp-tipo'] || data.tipo || '').trim();
+        const { data: jRow } = await db.from('juzgados').select('id').eq('prefijo', pref).maybeSingle();
+        const { data: tRow } = await db.from('tipos_resolucion').select('id').ilike('nombre', tipoNm).maybeSingle();
+
+        if (editandoFilaId) {
+          // ── EDITAR: construir body con solo los campos que se pueden actualizar
+          // Si juzgado/tipo no se encontró, no sobreescribir el existente
+          const body = {
+            numero:            (data['inp-numero']   || data.numero   || '').trim(),
+            caratula:          (data['inp-caratula'] || data.caratula || '').trim(),
+            fecha_llamamiento: data['inp-llamamiento'] || data.llamamiento || null,
+            fecha_vencimiento: data['inp-vencimiento'] || data.vencimiento || null,
+            fecha_cancelacion: (data['inp-cancelacion'] || data.cancelacion || null) || null,
+            fecha_sin_efecto:  (data['inp-sin-efecto']  || data.sin_efecto  || null) || null,
+            observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null,
+          };
+          if (jRow) body.juzgado_id = jRow.id;
+          if (tRow) body.tipo_id    = tRow.id;
+          // asignado_a se gestiona exclusivamente desde el botón Asignar (no desde este formulario)
+          const { error } = await db.from('expedientes').update(body).eq('id', editandoFilaId);
+          if (error) onErr({ message: error.message });
+          else onOk({ ok: true, msg: 'Expediente actualizado.' });
+
+        } else {
+          // ── NUEVO: juzgado y tipo son obligatorios
+          if (!jRow || !tRow) { onErr({ message: !jRow ? 'Juzgado no encontrado. Verificá la selección.' : 'Tipo de resolución no encontrado.' }); return; }
+          const body = {
+            numero:            (data['inp-numero']   || data.numero   || '').trim(),
+            caratula:          (data['inp-caratula'] || data.caratula || '').trim(),
+            juzgado_id:        jRow.id,
+            tipo_id:           tRow.id,
+            fecha_llamamiento: data['inp-llamamiento'] || data.llamamiento || null,
+            fecha_vencimiento: data['inp-vencimiento'] || data.vencimiento || null,
+            fecha_cancelacion: (data['inp-cancelacion'] || data.cancelacion || null) || null,
+            fecha_sin_efecto:  (data['inp-sin-efecto']  || data.sin_efecto  || null) || null,
+            observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null,
+            asignado_a:        null  // Se asigna luego desde el botón Asignar
+          };
+          const { error } = await db.from('expedientes').insert(body);
+          if (error) onErr({ message: error.message });
+          else onOk({ ok: true, msg: 'Expediente guardado.' });
+        }
+      } catch(e) { onErr({ message: e.message }); }
+    })();
+  }
+
+  /* ══════ Eliminar (confirm universal) ══════ */
+  function confirmarEliminar(id, contexto) {
+    _pendingDelete = { id, contexto };
+    $('confirmMsg').textContent = `¿Eliminás el registro de la fila ${id}? Esta acción no se puede deshacer.`;
+    const subMsg = $('confirmSubMsg');
+    if (contexto === 'INHABILIDADES' || contexto === 'LICENCIAS') {
+      subMsg.textContent = '⚠ Se recalcularán los vencimientos vigentes del LIBRO.';
+      subMsg.style.display = 'block';
+    } else {
+      subMsg.style.display = 'none';
+    }
+    $('modalConfirm').classList.add('open');
+  }
+
+  function cerrarModalConfirm() { $('modalConfirm').classList.remove('open'); _pendingDelete = null; }
+
+  $('btnConfirmarEliminar').addEventListener('click', () => {
+    const pending = _pendingDelete;
+    cerrarModalConfirm();
+    if (!pending) return;
+
+    if (pending.contexto === 'libro') {
+      showSpinner(); setStatus('Eliminando...', '#f59e0b');
+      (async () => {
+        try {
+          // RPC SECURITY DEFINER — bypassea RLS igual que asignar_expediente
+          const { data: res, error } = await db.rpc('eliminar_expediente', { p_id: pending.id });
+          hideSpinner();
+          if (error) { toast(error.message, 'error'); return; }
+          if (res?.ok === false) { toast(res.msg || 'No se pudo eliminar.', 'error'); return; }
+          toast('Expediente eliminado.', 'success'); refreshTabla();
+        } catch(e) { hideSpinner(); toast(e.message, 'error'); }
+      })();
+    } else if (pending.contexto === 'INHABILIDADES' || pending.contexto === 'LICENCIAS') {
+      showSpinner();
+      (async () => {
+        try {
+          const tabla = pending.contexto === 'INHABILIDADES' ? 'dias_inhabiles' : 'licencias_juez';
+          const { error } = await db.from(tabla).delete().eq('id', pending.id);
+          hideSpinner();
+          if (error) { toast(error.message, 'error'); return; }
+          const { data: rc } = await db.rpc('recalcular_todos_vencimientos', { p_motivo: 'Eliminación exclusión' });
+          const count = rc?.total_actualizados || 0;
+          toast(`Eliminado. (${count} recalculados)`, 'success');
+          cargarTablaAux(pending.contexto);
+          _marcarRefreshLibro(count, rc?.expedientes_ids || []);
+        } catch(e) { hideSpinner(); toast(e.message, 'error'); }
+      })();
+    } else {
+      // PLAZOS u otras tablas sin recálculo
+      (async () => {
+        const { error } = await db.from('tipos_resolucion').update({ activo: false }).eq('id', pending.id);
+        if (error) toast(error.message, 'error');
+        else { toast('Plazo desactivado.', 'success'); cargarTablaAux(pending.contexto); }
+      })();
+    }
+  });
+
+  /* Marca que el libro necesita refresh y muestra badge en el tab */
+  /* ══════ CRUD Tablas Auxiliares ══════ */
+  const AUX_CONFIG = {
+    PLAZOS: {
+      titulo: 'Plazo',
+      iconClass: 'purple',
+      btnClass: 'purple-mode',
+      recalcula: false,
+      campos: [
+        { name: 'codigo', label: 'Código',             type: 'auto',   placeholder: 'Auto',             req: false, span: 4, readonly: true },
+        { name: 'tipo',   label: 'Tipo de Resolución', type: 'text',   placeholder: 'Ej: HOMOLOGACION', req: true,  span: 8 },
+        { name: 'dias',   label: 'Días Hábiles',       type: 'number', placeholder: 'Ej: 30',           req: true,  span: 4 },
+        { name: 'notas',  label: 'Notas',              type: 'text',   placeholder: 'Opcional',          req: false, span: 8 },
+      ]
+    },
+    INHABILIDADES: {
+      titulo: 'Inhabilidad / Feriado',
+      iconClass: 'danger',
+      btnClass: 'danger-mode',
+      recalcula: true,
+      campos: [
+        { name: 'fecha',  label: 'Fecha',  type: 'date', req: true,  span: 6 },
+        { name: 'motivo', label: 'Motivo', type: 'text', placeholder: 'Ej: Feriado nacional', req: true, span: 6 },
+      ]
+    },
+    LICENCIAS: {
+      titulo: 'Licencia',
+      iconClass: 'teal',
+      btnClass: 'teal-mode',
+      recalcula: true,
+      campos: [
+        { name: 'fecha',  label: 'Fecha',  type: 'date', req: true,  span: 6 },
+        { name: 'motivo', label: 'Motivo', type: 'text', placeholder: 'Ej: Vacaciones', req: true, span: 6 },
+        // El campo "juez" se renderiza como select especial (ver abajo)
+        { name: 'juez',   label: 'Juez',   type: 'select', req: true, span: 12,
+          opciones: [] // Se llena en cargarListaJuzgados()
+        }
+      ]
+    }
+  };
+
+  function cargarTablaAux(hoja) {
+    const lId = hoja.toLowerCase();
+    $(`tbody-${lId}`).innerHTML = `<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text3);font-size:.82rem">Cargando...</td></tr>`;
+    (async () => {
+      let res;
+      try {
+        if (hoja === 'PLAZOS') {
+          const { data } = await db.from('tipos_resolucion').select('id,nombre,dias_habiles,notas').eq('activo',true).order('nombre');
+          res = { cabecera:['Código','Tipo de Resolución','Días Hábiles','Notas'], filas:(data||[]).map(r=>[r.id,r.nombre,r.dias_habiles,r.notas||'',r.id]) };
+        } else if (hoja === 'INHABILIDADES') {
+          const { data } = await db.from('dias_inhabiles').select('id,fecha,motivo').order('fecha',{ascending:false});
+          res = { cabecera:['Fecha','Motivo'], filas:(data||[]).map(r=>[isoToDisp(r.fecha),r.motivo||'',r.id]) };
+        } else {
+          const { data } = await db.from('licencias_juez').select('id,fecha,motivo,juzgados(prefijo,juez_nombre)').order('fecha',{ascending:false});
+          res = { cabecera:['Fecha','Motivo','Juez'], filas:(data||[]).map(r=>[isoToDisp(r.fecha),r.motivo||'',r.juzgados?r.juzgados.prefijo+' · '+r.juzgados.juez_nombre:'',r.id]) };
+        }
+      } catch(e) { toast(e.message,'error'); return; }
+      if (!res) return;
+      // Cabecera
+      const tr = document.createElement('tr');
+      res.cabecera.forEach(col => { const th = document.createElement('th'); th.textContent = col; tr.appendChild(th); });
+      const thAcc = document.createElement('th'); thAcc.textContent = 'Acciones'; tr.appendChild(thAcc);
+      $(`thead-${lId}`).innerHTML = ''; $(`thead-${lId}`).appendChild(tr);
+        // Filas
+        const tbody = $(`tbody-${lId}`);
+        if (!res.filas.length) {
+          tbody.innerHTML = `<tr><td colspan="${res.cabecera.length + 1}" style="text-align:center;padding:30px;color:var(--text3);font-size:.82rem">Sin registros</td></tr>`;
+        } else {
+          const frag = document.createDocumentFragment();
+          res.filas.forEach(fila => {
+            const idFila = fila[fila.length - 1];
+            const tr = document.createElement('tr');
+            fila.slice(0,-1).forEach(c => {
+              const td = document.createElement('td');
+              if (typeof c === 'string' && c.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const chip = document.createElement('span'); chip.className = 'date-chip fecha'; chip.textContent = c; td.appendChild(chip);
+              } else { td.textContent = c ?? ''; }
+              tr.appendChild(td);
+            });
+            const tdAcc = document.createElement('td');
+            const divB = document.createElement('div'); divB.className = 'action-btns';
+            const btnE = document.createElement('button'); btnE.className = 'btn-icon edit'; btnE.title = 'Editar';
+            btnE.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 9.5V12h2.5l6-6-2.5-2.5L1 9.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 2.5l1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+            btnE.addEventListener('click', () => abrirModalAux(hoja, 'editar', idFila, fila));
+            const btnD = document.createElement('button'); btnD.className = 'btn-icon del'; btnD.title = 'Eliminar';
+            btnD.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 4h9M5 4V3h3v1M3 4l.7 7.5h5.6L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5v3M7.5 6.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+            btnD.addEventListener('click', () => confirmarEliminar(idFila, hoja));
+            divB.appendChild(btnE); divB.appendChild(btnD); tdAcc.appendChild(divB); tr.appendChild(tdAcc);
+            frag.appendChild(tr);
+          });
+          tbody.innerHTML = ''; tbody.appendChild(frag);
+        }
+        $(`footer-${lId}`).innerHTML = `<strong>${res.filas.length}</strong> registros`;
+    })();
+  }
+
+  function abrirModalAux(hoja, modo, filaId, datos) {
+    auxHoja = hoja; auxModo = modo; auxFilaId = filaId || null;
+    const cfg = AUX_CONFIG[hoja];
+    $('auxIconWrap').className = `modal-icon-wrap ${modo === 'nuevo' ? cfg.iconClass : 'edit'}`;
+    $('auxIconWrap').innerHTML = modo === 'nuevo'
+      ? `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`
+      : `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12V14.5h2.5l7-7-2.5-2.5L2 12z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 3l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+    $('auxTitle').textContent    = `${modo === 'nuevo' ? 'Nuevo' : 'Editar'} · ${cfg.titulo}`;
+    $('auxSubtitle').textContent = hoja + (cfg.recalcula ? ' · Recalcula vencimientos' : '');
+    const btnClase = cfg.recalcula && modo === 'nuevo' ? cfg.btnClass : (modo === 'editar' ? 'warn-mode' : cfg.btnClass);
+    $('btnAuxGuardar').className = `btn-modal-save ${btnClase}`;
+    $('btnAuxTxt').textContent   = cfg.recalcula ? 'Guardar y Recalcular' : 'Guardar';
+    $('btnAuxGuardar').disabled  = false;
+
+    // Construir formulario dinámico
+    let html = '<div class="form-grid">';
+    cfg.campos.forEach((campo, i) => {
+      const val = datos ? (datos[i] || '') : '';
+      if (campo.type === 'select') {
+        html += `<div class="form-field fg-${campo.span || 6}">
+          <label>${campo.label}${campo.req ? ' <span class="req">*</span>' : ''}</label>
+          <select id="aux-f${i}" name="aux-f${i}">
+            <option value="">— Seleccionar —</option>
+            ${(campo.opciones||[]).map(o => `<option value="${o}"${val === o ? ' selected' : ''}>${o.replace(/_/g,' · ')}</option>`).join('')}
+          </select>
+        </div>`;
+      } else if (campo.type === 'auto') {
+        // Campo autonumérico: readonly, se genera automáticamente al guardar
+        html += `<div class="form-field fg-${campo.span || 4}">
+          <label>${campo.label} <span style="font-size:.68rem;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:4px">Auto</span></label>
+          <input id="aux-f${i}" type="text" value="${escAttr(val || '')}" placeholder="Se genera solo" readonly
+            style="background:var(--surf2);color:var(--text3);cursor:not-allowed;font-family:monospace">
+        </div>`;
+      } else if (campo.name === 'dias' || campo.name === 'dias_habiles') {
+        // Campo días hábiles: número grande con controles +/-
+        html += `<div class="form-field fg-${campo.span || 4}">
+          <label>${campo.label}${campo.req ? ' <span class="req">*</span>' : ''}</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" onclick="this.nextElementSibling.stepDown();this.nextElementSibling.dispatchEvent(new Event('input'))"
+              style="width:32px;height:32px;border:1px solid var(--border);border-radius:7px;background:var(--surf2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+            <input id="aux-f${i}" type="number" min="1" max="999" value="${escAttr(val || '')}"
+              style="text-align:center;font-size:1.4rem;font-weight:700;width:90px;padding:6px 4px" placeholder="0">
+            <button type="button" onclick="this.previousElementSibling.stepUp();this.previousElementSibling.dispatchEvent(new Event('input'))"
+              style="width:32px;height:32px;border:1px solid var(--border);border-radius:7px;background:var(--surf2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+          </div>
+        </div>`;
+      } else {
+        const fmtVal = campo.type === 'date' ? fmtDate(String(val)) : (val || '');
+        html += `<div class="form-field fg-${campo.span || 6}">
+          <label>${campo.label}${campo.req ? ' <span class="req">*</span>' : ''}</label>
+          <input id="aux-f${i}" type="${campo.type}" value="${escAttr(fmtVal)}" placeholder="${campo.placeholder || ''}">
+        </div>`;
+      }
+    });
+    html += '</div>';
+    $('auxBody').innerHTML = html;
+    $('modalAux').classList.add('open');
+    const first = $('auxBody').querySelector('input, select');
+    if (first) setTimeout(() => first.focus(), 260);
+  }
+
+  function cerrarModalAux() { $('modalAux').classList.remove('open'); auxHoja = auxModo = auxFilaId = null; }
+  function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+  function submitAux() {
+    const cfg = AUX_CONFIG[auxHoja];
+    let ok = true;
+    cfg.campos.forEach((campo, i) => {
+      const el = $(`aux-f${i}`);
+      if (campo.req && !el.value.trim()) { el.classList.add('invalid'); ok = false; }
+      else el.classList.remove('invalid');
+    });
+    if (!ok) { toast('Completá los campos obligatorios', 'error'); return; }
+
+    const filaValues = cfg.campos.map((_, i) => $(`aux-f${i}`).value.trim());
+    $('btnAuxGuardar').disabled = true;
+    const hojaSnap = auxHoja;
+
+    const onOk = res => {
+      $('btnAuxGuardar').disabled = false;
+      if (!res.ok) { toast(res.msg, 'error'); return; }
+      const extra = res.recalculados != null ? ` (${res.recalculados} recalculados)` : '';
+      toast(res.msg + extra, 'success');
+      cerrarModalAux();
+      cargarTablaAux(hojaSnap);
+      if (hojaSnap === 'PLAZOS') cargarListaPlazos();
+      if (res.recalculados != null) _marcarRefreshLibro(res.recalculados, res.filaIds);
+    };
+    const onErr = err => { $('btnAuxGuardar').disabled = false; toast(err.message, 'error'); };
+
+    if (hojaSnap === 'INHABILIDADES' || hojaSnap === 'LICENCIAS') {
+      const obj = {
+        tipoHoja: hojaSnap,
+        fecha:    filaValues[0],
+        motivo:   filaValues[1],
+        juez:     hojaSnap === 'LICENCIAS' ? filaValues[2] : undefined
+      };
+      if (auxModo === 'editar') {
+        obj.filaId = auxFilaId;
+        db.from(obj.tipoHoja === 'INHABILIDADES' ? 'dias_inhabiles' : 'licencias_juez')
+          .update({ fecha: obj.fecha, motivo: obj.motivo || null }).eq('id', obj.filaId)
+          .then(({ error }) => error ? onErr({message:error.message}) : db.rpc('recalcular_todos_vencimientos',{p_motivo:'Edición exclusión'}).then(({data:r})=>onOk({ok:true,msg:'Actualizado.',recalculados:r?.total_actualizados||0,filaIds:r?.expedientes_ids||[]})));
+      } else {
+        (async () => {
+          let error;
+          if (obj.tipoHoja === 'LICENCIAS') {
+            const pref = (obj.juez||'').match(/(\d+F)/i)?.[1]?.toUpperCase()||'';
+            const {data:jRow} = await db.from('juzgados').select('id').eq('prefijo',pref).single();
+            if (!jRow) { onErr({message:'Juzgado no encontrado: '+obj.juez}); return; }
+            ({error} = await db.from('licencias_juez').insert({juzgado_id:jRow.id,fecha:obj.fecha,motivo:obj.motivo||null}));
+          } else {
+            ({error} = await db.from('dias_inhabiles').insert({fecha:obj.fecha,motivo:obj.motivo||null}));
+          }
+          if (error) { onErr({message:error.message}); return; }
+          const {data:r} = await db.rpc('recalcular_todos_vencimientos',{p_motivo:'Nueva exclusión'});
+          onOk({ok:true,msg:'Guardado.',recalculados:r?.total_actualizados||0,filaIds:r?.expedientes_ids||[]});
+        })();
+      }
+    } else {
+      // PLAZOS
+      if (auxModo === 'editar') {
+        db.from('tipos_resolucion').update({nombre:filaValues[1],dias_habiles:parseInt(filaValues[2])||0,notas:filaValues[3]||null}).eq('id',auxFilaId)
+          .then(({error})=>error?onErr({message:error.message}):onOk({ok:true,msg:'Plazo actualizado.'}));
+      } else {
+        db.from('tipos_resolucion').insert({nombre:filaValues[1],dias_habiles:parseInt(filaValues[2])||0,notas:filaValues[3]||null})
+          .then(({error})=>error?onErr({message:error.message}):onOk({ok:true,msg:'Plazo guardado.'}));
+      }
+    }
+  }
+
+  /* Marca que el libro necesita refresh y muestra badge en el tab */
+  function _marcarRefreshLibro(count, filaIds) {
+    if (count > 0) {
+      _libroNecesitaRefresh = true;
+      $('tab-libro').classList.add('needs-refresh');
+      if (filaIds && filaIds.length) {
+        filaIds.forEach(id => _vencimientosRecalculados.add(id));
+      }
+      toast(`${count} vencimiento(s) recalculados. Hacé clic en 'Autos y Sentencias' para ver los cambios.`, 'warn');
+    }
+  }
+
+  /* ══════ Modal Cerrar Expediente (solo usuario) ══════ */
+  let _cerrarFilaId = null;
+  function abrirModalCerrar(id, fila) {
+    _cerrarFilaId = id;
+    // Usar modal dedicado #modalCerrar (NO sobreescribir #modalConfirm)
+    $('cerrarExpNum').textContent  = fila[0];
+    $('cerrarExpCar').textContent  = String(fila[1]).substring(0, 45) + (fila[1].length > 45 ? '…' : '');
+    $('cerrar-fecha').value        = TODAY_STR;
+    $('cerrar-tipo').value         = 'cancelacion';
+    $('modalCerrar').classList.add('open');
+  }
+
+  function cerrarModalCerrar() {
+    $('modalCerrar').classList.remove('open');
+    _cerrarFilaId = null;
+  }
+
+  function submitCerrarExpediente() {
+    const tipo  = document.getElementById('cerrar-tipo')?.value;
+    const fecha = document.getElementById('cerrar-fecha')?.value;
+    if (!fecha) { toast('Seleccioná la fecha', 'error'); return; }
+    if (!_cerrarFilaId) { toast('Error: expediente no identificado.', 'error'); return; }
+    // Capturar el ID ANTES de cerrar el modal (cerrarModalCerrar lo pone en null)
+    const expedienteId = _cerrarFilaId;
+    cerrarModalCerrar();
+    showSpinner();
+    const campo = tipo === 'sin_efecto' ? 'fecha_sin_efecto' : 'fecha_cancelacion';
+    const patch = { [campo]: fecha, updated_at: new Date().toISOString() };
+    (async () => {
+      try {
+        const { error, count } = await db
+          .from('expedientes')
+          .update(patch)
+          .eq('id', expedienteId);
+        hideSpinner();
+        if (error) {
+          toast('Error al guardar: ' + error.message, 'error');
+          return;
+        }
+        const label = tipo === 'sin_efecto' ? 'Sin Efecto' : 'Cancelación';
+        toast('✓ ' + label + ' registrada correctamente.', 'success');
+        refreshTabla();
+      } catch(e) { hideSpinner(); toast(e.message, 'error'); }
+    })();
+  }
+
+  /* ══════ Gestión de Usuarios (solo admin) ══════ */
+  function cargarUsuarios() {
+    if (!ES_ADMIN) return;
+    (async () => {
+      const tbody = $('tbody-usuarios');
+      const { data, error } = await db.from('perfiles').select('id,nombre_completo,email,rol,activo,ultimo_acceso').order('created_at');
+      const res = { usuarios: (data || []).map(u => ({...u, nombre: u.nombre_completo, email: u.email || '—', expedientes_asignados:0, expedientes_vencidos:0, ultimo_acceso: u.ultimo_acceso})) };
+      if (error || !res.usuarios) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">Error al cargar usuarios</td></tr>`;
+          return;
+        }
+        if (!res.usuarios.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No hay usuarios registrados</td></tr>`;
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        res.usuarios.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid var(--border)';
+          const rolBadge = u.rol === 'admin'
+            ? `<span style="background:#fef3c7;color:#92400e;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px">👑 Admin</span>`
+            : `<span style="background:#dbeafe;color:#1d4ed8;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:99px">👤 Usuario</span>`;
+          const activoBadge = u.activo
+            ? `<span style="background:#d1fae5;color:#065f46;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px">✓ Activo</span>`
+            : `<span style="background:#fee2e2;color:#991b1b;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px">✗ Inactivo</span>`;
+          tr.innerHTML = `
+            <td style="padding:9px 12px;font-size:.83rem;font-weight:600;color:var(--text)">${u.nombre}</td>
+            <td style="padding:9px 12px;font-size:.83rem;color:var(--text2)">${u.email}</td>
+            <td style="padding:9px 12px">${rolBadge}</td>
+            <td style="padding:9px 12px">${activoBadge}</td>
+            <td style="padding:9px 12px;font-size:.82rem;color:var(--text2)">${u.expedientes_asignados} (${u.expedientes_vencidos} venc.)</td>
+            <td style="padding:9px 12px;font-size:.75rem;color:var(--text3)">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-AR') : 'Nunca'}</td>
+            <td style="padding:9px 12px">
+              <div style="display:flex;gap:5px">
+                <button class="btn-icon edit" title="Cambiar estado" onclick="toggleUsuarioActivo('${u.id}', ${u.activo})" style="width:26px;height:26px;border-radius:6px">
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5C1 3.02 3.02 1 5.5 1S10 3.02 10 5.5 7.98 10 5.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M3 5.5l2 2 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </td>`;
+          frag.appendChild(tr);
+        });
+        tbody.innerHTML = '';
+        tbody.appendChild(frag);
+        $('footer-usuarios').innerHTML = `<strong>${res.usuarios.length}</strong> usuarios`;
+    })();
+  }
+
+  function toggleUsuarioActivo(userId, activo) {
+    (async () => {
+      const { error } = await db.from('perfiles').update({ activo: !activo }).eq('id', userId);
+      if (error) toast(error.message, 'error');
+      else { toast(!activo ? 'Usuario activado.' : 'Usuario desactivado.', 'success'); cargarUsuarios(); }
+    })();
+  }
+
+  function abrirModalCrearUsuario() { $('modalUsuario').classList.add('open'); }
+  function cerrarModalUsuario() { $('modalUsuario').classList.remove('open'); }
+
+  function submitCrearUsuario() {
+    const nombre = $('u-nombre').value.trim();
+    const email  = $('u-email').value.trim();
+    const rol    = $('u-rol').value;
+    const pass   = $('u-pass').value;
+    if (!nombre || !email || !pass) { toast('Completá todos los campos', 'error'); return; }
+    if (pass.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
+    $('btnGuardarUsuario').disabled = true;
+    (async () => {
+      try {
+        const respRaw = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass, data: { nombre_completo: nombre, rol } })
+        });
+        const respJson = await respRaw.json();
+        $('btnGuardarUsuario').disabled = false;
+        if (!respRaw.ok || respJson.error || respJson.error_description) {
+          toast(respJson.error_description || respJson.msg || respJson.error || 'Error al crear usuario', 'error');
+          return;
+        }
+        toast(`Usuario "${nombre}" creado exitosamente`, 'success');
+        cerrarModalUsuario();
+        cargarUsuarios();
+        $('u-nombre').value = ''; $('u-email').value = ''; $('u-pass').value = '';
+      } catch(e) { $('btnGuardarUsuario').disabled = false; toast(e.message, 'error'); }
+    })();
+  }
+
+  /* ══════ Atajos ══════ */
+  document.querySelectorAll('#formCarga input, #formCarga select').forEach(inp =>
+    inp.addEventListener('input', () => inp.classList.remove('invalid'))
+  );
+  $('busqTexto').addEventListener('keypress', e => { if (e.key === 'Enter') ejecutarBusqueda(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { cerrarModalForm(); cerrarModalAux(); cerrarModalConfirm(); cerrarModalUsuario(); cerrarModalAsignar(); cerrarModalCerrar(); }
+  });
+  $('modalForm').addEventListener('click',    e => { if (e.target === e.currentTarget) cerrarModalForm(); });
+  $('modalAux').addEventListener('click',     e => { if (e.target === e.currentTarget) cerrarModalAux(); });
+  $('modalConfirm').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModalConfirm(); });
+  $('modalUsuario').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModalUsuario(); });
+  $('modalAsignar').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModalAsignar(); });
+  $('modalCerrar').addEventListener('click',  e => { if (e.target === e.currentTarget) cerrarModalCerrar(); });
+</script>
+</body>
+</html>

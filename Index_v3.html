@@ -1034,7 +1034,7 @@
         sep.style.cssText = 'width:1px;height:18px;background:var(--border);display:inline-block;vertical-align:middle;margin:0 2px';
         div.appendChild(sep);
         const btnE = document.createElement('button'); btnE.className = 'btn-icon edit'; btnE.title = 'Modificar expediente';
-        btnE.innerHTML = `<svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M1 9.5V12h2.5l6-6-2.5-2.5L1 9.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 2.5l1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+        btnE.innerHTML = `<svg width="12" height="12" viewBox="0 0 11 11" fill="none"><path d="M1 9.5V12h2.5l6-6-2.5-2.5L1 9.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 2.5l1.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
         btnE.addEventListener('click', () => abrirModalEditar(idFila, fila));
         // Botón Asignar (persona con +)
         const btnA = document.createElement('button'); btnA.className = 'btn-icon'; btnA.title = 'Asignar a usuario';
@@ -1042,7 +1042,7 @@
         btnA.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M2 20c0-4 3.6-7 8-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 14v6M15 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
         btnA.addEventListener('click', () => abrirModalAsignar(idFila, fila));
         const btnD = document.createElement('button'); btnD.className = 'btn-icon del'; btnD.title = 'Eliminar';
-        btnD.innerHTML = `<svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M2 4h9M5 4V3h3v1M3 4l.7 7.5h5.6L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5v3M7.5 6.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+        btnD.innerHTML = `<svg width="12" height="12" viewBox="0 0 11 11" fill="none"><path d="M2 4h9M5 4V3h3v1M3 4l.7 7.5h5.6L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5v3M7.5 6.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
         btnD.addEventListener('click', () => confirmarEliminar(idFila, 'libro', fila[0]));
         div.appendChild(btnE); div.appendChild(btnA); div.appendChild(btnD);
       } else {

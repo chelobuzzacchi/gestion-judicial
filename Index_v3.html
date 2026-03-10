@@ -135,17 +135,17 @@
 
     /* Anchos LIBRO */
     .libro-table col.c-num  { width: 7%; }
-    .libro-table col.c-car  { width: 20%; }
+    .libro-table col.c-car  { width: 24%; }
     .libro-table col.c-juz  { width: 11%; }
     .libro-table col.c-tipo { width: 9%; }
     .libro-table col.c-llam { width: 9%; }
     .libro-table col.c-venc { width: 10%; }
     .libro-table col.c-canc { width: 9%; }
-    .libro-table col.c-obs  { width: 12%; }
-    .libro-table col.c-acc  { width: 10%; }
+    .libro-table col.c-obs  { width: 15%; }
+    .libro-table col.c-acc  { width: 6%; }
 
     thead tr { background: linear-gradient(135deg,#16213a 0%,#1e3a5f 100%); position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(22,33,58,.18); }
-    thead th { padding: 9px 7px; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); border: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid rgba(255,255,255,.07); }
+    thead th { padding: 11px 12px; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); border: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-right: 1px solid rgba(255,255,255,.07); }
     thead th:last-child { border-right: none; }
     thead th.th-llam { color: #93c5fd; }
 
@@ -153,7 +153,7 @@
     tbody tr:nth-child(even) { background: #fafbfd; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #eef3fd !important; }
-    tbody td { font-size: .78rem; color: #2d3748; }
+    tbody td { font-size: .83rem; color: #2d3748; }
     tbody td:first-child { font-weight: 600; color: var(--navy); font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
 
     /* ── Fila vencida ── */
@@ -196,7 +196,7 @@
     }
 
     .action-btns { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-    .btn-icon { width: 24px; height: 24px; border-radius: 7px; border: 1.5px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .13s; background: transparent; flex-shrink: 0; }
+    .btn-icon { width: 29px; height: 29px; border-radius: 7px; border: 1.5px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .13s; background: transparent; flex-shrink: 0; }
     .btn-icon.edit { color: var(--accent); border-color: #c5d9fa; background: var(--accent-s); }
     .btn-icon.edit:hover { background: var(--accent); border-color: var(--accent); color: #fff; transform: scale(1.1); }
     .btn-icon.del  { color: var(--danger); border-color: #f5c5c2; background: var(--danger-s); }
@@ -225,6 +225,7 @@
     .modal-card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 720px; max-height: 92vh; overflow-y: auto; transform: translateY(24px) scale(.97); opacity: 0; transition: transform .25s cubic-bezier(.34,1.3,.64,1), opacity .2s; }
     .modal-overlay.open .modal-card { transform: translateY(0) scale(1); opacity: 1; }
     .modal-card.sm { max-width: 480px; }
+.modal-card.md { max-width: 600px; }
     .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0; }
     .modal-header-left { display: flex; align-items: center; gap: 11px; }
     .modal-icon-wrap { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
@@ -629,7 +630,7 @@
 
 <!-- Modal Tablas Aux -->
 <div class="modal-overlay" id="modalAux">
-  <div class="modal-card sm">
+  <div class="modal-card md">
     <div class="modal-header">
       <div class="modal-header-left">
         <div class="modal-icon-wrap" id="auxIconWrap"></div>
@@ -794,11 +795,11 @@
 
   (async function checkSession() {
     const { data: { session } } = await db.auth.getSession();
-    if (!session) { window.location.href = 'Index.html'; return; }
+    if (!session) { window.location.href = 'index.html'; return; }
     const { data: perfil } = await db.from('perfiles')
       .select('rol,nombre_completo,activo').eq('id', session.user.id).single();
     if (!perfil || !perfil.activo) {
-      await db.auth.signOut(); window.location.href = 'Index.html'; return;
+      await db.auth.signOut(); window.location.href = 'index.html'; return;
     }
     // Asignar directamente — no depende de sessionStorage
     ROL       = perfil.rol;
@@ -850,7 +851,7 @@
   async function doLogout() {
     try { await db.auth.signOut(); } catch(e) {}
     sessionStorage.clear();
-    window.location.href = 'Index.html';
+    window.location.href = 'index.html';
   }
 
   /* ══════ Navegación ══════ */
@@ -1547,10 +1548,10 @@
       btnClass: 'purple-mode',
       recalcula: false,
       campos: [
-        { name: 'codigo', label: 'Código',             type: 'auto',   placeholder: 'Auto',             req: false, span: 4, readonly: true },
-        { name: 'tipo',   label: 'Tipo de Resolución', type: 'text',   placeholder: 'Ej: HOMOLOGACION', req: true,  span: 8 },
-        { name: 'dias',   label: 'Días Hábiles',       type: 'number', placeholder: 'Ej: 30',           req: true,  span: 4 },
-        { name: 'notas',  label: 'Notas',              type: 'text',   placeholder: 'Opcional',          req: false, span: 8 },
+        { name: 'codigo', label: 'Código',             type: 'auto',   placeholder: 'Auto',             req: false, span: 3, readonly: true },
+        { name: 'tipo',   label: 'Tipo de Resolución', type: 'text',   placeholder: 'Ej: HOMOLOGACION', req: true,  span: 9 },
+        { name: 'dias',   label: 'Días Hábiles',       type: 'number', placeholder: 'Ej: 30',           req: true,  span: 5 },
+        { name: 'notas',  label: 'Notas',              type: 'text',   placeholder: 'Opcional',          req: false, span: 7 },
       ]
     },
     INHABILIDADES: {
@@ -1676,7 +1677,7 @@
             <button type="button" onclick="this.nextElementSibling.stepDown();this.nextElementSibling.dispatchEvent(new Event('input'))"
               style="width:32px;height:32px;border:1px solid var(--border);border-radius:7px;background:var(--surf2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
             <input id="aux-f${i}" type="number" min="1" max="999" value="${escAttr(val || '')}"
-              style="text-align:center;font-size:1.4rem;font-weight:700;width:90px;padding:6px 4px" placeholder="0">
+              style="text-align:center;font-size:1.4rem;font-weight:700;width:80px;min-width:60px;padding:6px 4px" placeholder="0">
             <button type="button" onclick="this.previousElementSibling.stepUp();this.previousElementSibling.dispatchEvent(new Event('input'))"
               style="width:32px;height:32px;border:1px solid var(--border);border-radius:7px;background:var(--surf2);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
           </div>
@@ -1825,8 +1826,9 @@
     if (!ES_ADMIN) return;
     (async () => {
       const tbody = $('tbody-usuarios');
-      const { data, error } = await db.from('perfiles').select('id,nombre_completo,email,rol,activo,ultimo_acceso').order('created_at');
-      const res = { usuarios: (data || []).map(u => ({...u, nombre: u.nombre_completo, email: u.email || '—', expedientes_asignados:0, expedientes_vencidos:0, ultimo_acceso: u.ultimo_acceso})) };
+      // RPC SECURITY DEFINER — hace JOIN con auth.users para obtener el email real
+      const { data, error } = await db.rpc('get_usuarios_con_email');
+      const res = { usuarios: (data || []).map(u => ({...u, nombre: u.nombre_completo, email: u.email || '—', expedientes_asignados:0, expedientes_vencidos:0})) };
       if (error || !res.usuarios) {
           tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">Error al cargar usuarios</td></tr>`;
           return;

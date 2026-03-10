@@ -1826,11 +1826,28 @@
     if (!ES_ADMIN) return;
     (async () => {
       const tbody = $('tbody-usuarios');
-      // RPC SECURITY DEFINER — hace JOIN con auth.users para obtener el email real
-      const { data, error } = await db.rpc('get_usuarios_con_email');
-      const res = { usuarios: (data || []).map(u => ({...u, nombre: u.nombre_completo, email: u.email || '—', expedientes_asignados:0, expedientes_vencidos:0})) };
-      if (error || !res.usuarios) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">Error al cargar usuarios</td></tr>`;
+      // Intentar RPC primero (tiene email real via JOIN auth.users)
+      // Si el RPC no existe aún, cae al fallback directo en perfiles
+      let usuarios = [];
+      try {
+        const { data: rpcData, error: rpcErr } = await db.rpc('get_usuarios_con_email');
+        if (rpcErr) {
+          // Fallback: query directa a perfiles (sin email)
+          console.warn('RPC get_usuarios_con_email no disponible, usando fallback:', rpcErr.message);
+          const { data: fallbackData, error: fallbackErr } = await db
+            .from('perfiles').select('id,nombre_completo,rol,activo,ultimo_acceso').order('created_at');
+          if (fallbackErr) throw new Error(fallbackErr.message);
+          usuarios = (fallbackData || []).map(u => ({...u, nombre_completo: u.nombre_completo, email: '—'}));
+        } else {
+          usuarios = rpcData || [];
+        }
+      } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">Error: ${e.message}</td></tr>`;
+        return;
+      }
+      const res = { usuarios: usuarios.map(u => ({...u, nombre: u.nombre_completo, email: u.email || '—', expedientes_asignados:0, expedientes_vencidos:0})) };
+      if (!res.usuarios.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No hay usuarios registrados</td></tr>`;
           return;
         }
         if (!res.usuarios.length) {

@@ -248,6 +248,14 @@
       <div class="kpi-value" id="kpi-cancelados">—</div>
       <div class="kpi-label">Cancelados</div>
     </div>
+    <div class="kpi-card" style="border-top:3px solid #7c3aed">
+      <div class="kpi-icon" style="background:#f5f3ff;color:#6b21a8">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.8 5.4H16l-4.5 3.3 1.7 5.3L9 13l-4.2 3 1.7-5.3L2 7.4h5.2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="kpi-value" id="kpi-sin-efecto" style="color:#6b21a8">—</div>
+      <div class="kpi-label">Sin Efecto</div>
+      <div class="kpi-sub" id="kpi-sin-efecto-pct"></div>
+    </div>
   </div>
 
   <!-- Filtros -->
@@ -271,6 +279,7 @@
           <option value="vigente">Vigentes</option>
           <option value="vencido">Vencidos</option>
           <option value="cancelado">Cancelados</option>
+              <option value="sin_efecto">Sin Efecto</option>
         </select>
       </div>
       <div class="ff w-sel"><label for="f-tipo">Tipo Resolución</label>
@@ -355,12 +364,13 @@
             <th onclick="sortTable('llamamiento')">Llamamiento</th>
             <th onclick="sortTable('vencimiento')">Vencimiento</th>
             <th onclick="sortTable('cancelacion')">Cancelación</th>
+            <th onclick="sortTable('sin_efecto')">Sin Efecto</th>
             <th onclick="sortTable('estado')">Estado</th>
             <th>Observación</th>
           </tr>
         </thead>
         <tbody id="tbodyReporte">
-          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text3)">Cargando datos...</td></tr>
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3)">Cargando datos...</td></tr>
         </tbody>
       </table>
     </div>
@@ -383,7 +393,7 @@
   // ── Auth guard: solo admin puede ver Reportes ──────────────────────────────
   (async () => {
     const { data: { session } } = await db.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return; }
+    if (!session) { window.location.href = 'Index.html'; return; }
     const { data: perfil } = await db.from('perfiles')
       .select('rol,activo').eq('id', session.user.id).single();
     if (!perfil || !perfil.activo || perfil.rol !== 'admin') {
@@ -546,24 +556,27 @@
     const hoy = new Date(); hoy.setHours(0,0,0,0);
     const primerDelMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
-    let total=0, vigentes=0, vencidos=0, cancelados=0, esteMes=0;
+    let total=0, vigentes=0, vencidos=0, cancelados=0, sinEfecto=0, esteMes=0;
     _filtered.forEach(r => {
       total++;
       const est = calcEstado(r);
-      if (est === 'vigente')   vigentes++;
-      if (est === 'vencido')   vencidos++;
-      if (est === 'cancelado') cancelados++;
+      if (est === 'vigente')    vigentes++;
+      if (est === 'vencido')    vencidos++;
+      if (est === 'cancelado')  cancelados++;
+      if (est === 'sin_efecto') sinEfecto++;
       const llam = parseDateDisplay(r.llamamiento);
       if (llam && llam >= primerDelMes) esteMes++;
     });
 
-    document.getElementById('kpi-total').textContent     = total;
-    document.getElementById('kpi-vigentes').textContent  = vigentes;
-    document.getElementById('kpi-vencidos').textContent  = vencidos;
-    document.getElementById('kpi-cancelados').textContent = cancelados;
-    document.getElementById('kpi-este-mes').textContent  = esteMes;
-    document.getElementById('kpi-vigentes-pct').textContent = total ? `${Math.round(vigentes/total*100)}% del total` : '';
-    document.getElementById('kpi-vencidos-pct').textContent = vencidos > 0 ? `⚠ Requieren cancelación` : '✓ Sin vencidos';
+    document.getElementById('kpi-total').textContent          = total;
+    document.getElementById('kpi-vigentes').textContent       = vigentes;
+    document.getElementById('kpi-vencidos').textContent       = vencidos;
+    document.getElementById('kpi-cancelados').textContent     = cancelados;
+    document.getElementById('kpi-sin-efecto').textContent     = sinEfecto;
+    document.getElementById('kpi-este-mes').textContent       = esteMes;
+    document.getElementById('kpi-vigentes-pct').textContent   = total ? `${Math.round(vigentes/total*100)}% del total` : '';
+    document.getElementById('kpi-vencidos-pct').textContent   = vencidos > 0 ? `⚠ Requieren cancelación` : '✓ Sin vencidos';
+    document.getElementById('kpi-sin-efecto-pct').textContent = total ? `${Math.round(sinEfecto/total*100)}% del total` : '';
   }
 
   /* ── Tabla ── */
@@ -574,7 +587,7 @@
     document.querySelectorAll('#tablaReporte thead th').forEach(th => {
       th.classList.remove('sort-asc','sort-desc');
     });
-    const idx = ['numero','caratula','juzgado','tipo','llamamiento','vencimiento','cancelacion','estado'].indexOf(col);
+    const idx = ['numero','caratula','juzgado','tipo','llamamiento','vencimiento','cancelacion','sin_efecto','estado'].indexOf(col);
     if (idx >= 0) {
       const ths = document.querySelectorAll('#tablaReporte thead th');
       ths[idx].classList.add(_sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
@@ -596,7 +609,7 @@
     const hoy = new Date(); hoy.setHours(0,0,0,0);
 
     if (!pageData.length) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text3)">Sin resultados con los filtros aplicados</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3)">Sin resultados con los filtros aplicados</td></tr>`;
     } else {
       const frag = document.createDocumentFragment();
       pageData.forEach(r => {
@@ -620,6 +633,7 @@
           <td><span class="date-chip llam">${r.llamamiento || '—'}</span></td>
           <td>${vencChip}</td>
           <td>${r.cancelacion ? `<span class="date-chip canc">${r.cancelacion}</span>` : '—'}</td>
+          <td>${r.sin_efecto ? `<span class="date-chip" style="background:#f5f3ff;color:#6b21a8">✦ ${r.sin_efecto}</span>` : '—'}</td>
           <td>${estadoBadge}</td>
           <td class="td-wrap" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${r.observacion || ''}</td>`;
         frag.appendChild(tr);
@@ -662,15 +676,16 @@
 
   function renderizarGraficos() {
     const hoy = new Date(); hoy.setHours(0,0,0,0);
-    let vigentes=0, vencidos=0, cancelados=0;
+    let vigentes=0, vencidos=0, cancelados=0, sinEfecto=0;
     const byTipo = {}, byMes = {};
     const proximos60 = {};
 
     _filtered.forEach(r => {
       const est = calcEstado(r);
-      if (est==='vigente')   vigentes++;
-      if (est==='vencido')   vencidos++;
-      if (est==='cancelado') cancelados++;
+      if (est==='vigente')    vigentes++;
+      if (est==='vencido')    vencidos++;
+      if (est==='cancelado')  cancelados++;
+      if (est==='sin_efecto') sinEfecto++;
       byTipo[r.tipo] = (byTipo[r.tipo] || 0) + 1;
       if (r.llamamiento) {
         const m = r.llamamiento.slice(3,10).split('/').reverse().join('-'); // MM/YYYY → YYYY-MM
@@ -695,9 +710,9 @@
     _charts['chartEstados'] = new Chart(document.getElementById('chartEstados'), {
       type: 'doughnut',
       data: {
-        labels: ['Vigentes','Vencidos','Cancelados'],
-        datasets: [{ data: [vigentes,vencidos,cancelados],
-          backgroundColor: [CHART_COLORS.azul, CHART_COLORS.rojo, CHART_COLORS.verde],
+        labels: ['Vigentes','Vencidos','Cancelados','Sin Efecto'],
+        datasets: [{ data: [vigentes, vencidos, cancelados, sinEfecto],
+          backgroundColor: [CHART_COLORS.azul, CHART_COLORS.rojo, CHART_COLORS.verde, '#7c3aed'],
           borderWidth: 0, hoverOffset: 6 }]
       },
       options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
@@ -755,20 +770,20 @@
   function exportarExcel() {
     try {
       const hoy = new Date().toISOString().slice(0,10);
-      const rows = [['Número','Carátula','Juzgado','Tipo Resolución','Llamamiento','Vencimiento','Cancelación','Estado','Observación']];
+      const rows = [['Número','Carátula','Juzgado','Tipo Resolución','Llamamiento','Vencimiento','Cancelación','Sin Efecto','Estado','Observación']];
       _filtered.forEach(r => rows.push([
         r.numero, r.caratula, r.juzgado, r.tipo,
-        r.llamamiento, r.vencimiento, r.cancelacion,
+        r.llamamiento, r.vencimiento, r.cancelacion, r.sin_efecto || '',
         calcEstado(r), r.observacion
       ]));
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
       // Estilo de cabecera (ancho de columnas)
       ws['!cols'] = [
-        {wch:12},{wch:40},{wch:20},{wch:22},{wch:14},{wch:14},{wch:14},{wch:12},{wch:30}
+        {wch:12},{wch:40},{wch:20},{wch:22},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12},{wch:30}
       ];
       // Auto-filter
-      ws['!autofilter'] = { ref: `A1:I${rows.length}` };
+      ws['!autofilter'] = { ref: `A1:J${rows.length}` };
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Expedientes');
@@ -783,6 +798,7 @@
         ['Vigentes',    _filtered.filter(r=>calcEstado(r)==='vigente').length],
         ['Vencidos',    _filtered.filter(r=>calcEstado(r)==='vencido').length],
         ['Cancelados',  _filtered.filter(r=>calcEstado(r)==='cancelado').length],
+        ['Sin Efecto',  _filtered.filter(r=>calcEstado(r)==='sin_efecto').length],
       ];
       const wsRes = XLSX.utils.aoa_to_sheet(resumen);
       XLSX.utils.book_append_sheet(wb, wsRes, 'Resumen');
@@ -813,12 +829,15 @@
       const vig    = _filtered.filter(r=>calcEstado(r)==='vigente').length;
       const venc   = _filtered.filter(r=>calcEstado(r)==='vencido').length;
       const canc   = _filtered.filter(r=>calcEstado(r)==='cancelado').length;
+      const sinEf  = _filtered.filter(r=>calcEstado(r)==='sin_efecto').length;
 
       doc.setTextColor(26,38,64);
       doc.setFontSize(10); doc.setFont('helvetica','bold');
       const kpiY = 30;
-      [[`Total: ${total}`,14],[`Vigentes: ${vig}`,70],[`Vencidos: ${venc}`,126,true],[`Cancelados: ${canc}`,182]].forEach(([txt,x,red])=>{
-        if (red) doc.setTextColor(224,54,42); else doc.setTextColor(26,38,64);
+      [[`Total: ${total}`,14],[`Vigentes: ${vig}`,65],[`Vencidos: ${venc}`,116,true],[`Cancelados: ${canc}`,167],[`Sin Efecto: ${sinEf}`,228,false,true]].forEach(([txt,x,red,purple])=>{
+        if (red) doc.setTextColor(224,54,42);
+        else if (purple) doc.setTextColor(107,33,168);
+        else doc.setTextColor(26,38,64);
         doc.text(txt, x, kpiY);
       });
       doc.setTextColor(26,38,64);
@@ -826,20 +845,25 @@
       // Tabla
       doc.autoTable({
         startY: 36,
-        head: [['Número','Carátula','Juzgado','Tipo','Llamamiento','Vencimiento','Cancelación','Estado']],
+        head: [['Número','Carátula','Juzgado','Tipo','Llamamiento','Vencimiento','Cancelación','Sin Efecto','Estado']],
         body: _filtered.map(r => [
-          r.numero, r.caratula.substring(0,45), r.juzgado, r.tipo,
-          r.llamamiento, r.vencimiento, r.cancelacion, calcEstado(r)
+          r.numero, r.caratula.substring(0,40), r.juzgado, r.tipo,
+          r.llamamiento, r.vencimiento, r.cancelacion || '', r.sin_efecto || '', calcEstado(r)
         ]),
         styles: { font:'helvetica', fontSize:8, cellPadding:3, overflow:'ellipsize' },
         headStyles: { fillColor:[26,38,64], textColor:255, fontStyle:'bold', fontSize:8 },
         alternateRowStyles: { fillColor:[248,249,252] },
         columnStyles: { 1:{cellWidth:55}, 7:{cellWidth:20} },
         didParseCell: data => {
-          if (data.section==='body' && data.column.index===7) {
+          if (data.section==='body' && data.column.index===8) {
             const v = data.cell.raw;
-            if (v==='vencido')   { data.cell.styles.textColor=[224,54,42]; data.cell.styles.fontStyle='bold'; }
-            if (v==='cancelado') { data.cell.styles.textColor=[26,158,107]; }
+            if (v==='vencido')    { data.cell.styles.textColor=[224,54,42]; data.cell.styles.fontStyle='bold'; }
+            if (v==='cancelado')  { data.cell.styles.textColor=[26,158,107]; }
+            if (v==='sin_efecto') { data.cell.styles.textColor=[107,33,168]; }
+          }
+          // Colorear fecha sin_efecto
+          if (data.section==='body' && data.column.index===7 && data.cell.raw) {
+            data.cell.styles.textColor=[107,33,168];
           }
         },
         margin: { left:10, right:10 }

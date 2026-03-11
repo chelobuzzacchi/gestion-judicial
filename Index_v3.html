@@ -921,7 +921,21 @@
     el.innerHTML = ico;
     el.appendChild(document.createTextNode(msg));
     $('toast-wrap').appendChild(el);
-    setTimeout(() => { el.style.cssText += 'opacity:0;transform:translateX(16px);transition:all .28s'; setTimeout(() => el.remove(), 290); }, 3500);
+    // Duración por tipo: error=5s, warn=4s, success=3s
+    const dur = tipo === 'error' ? 5000 : tipo === 'warn' ? 4000 : 3000;
+    setTimeout(() => { el.style.cssText += 'opacity:0;transform:translateX(16px);transition:all .28s'; setTimeout(() => el.remove(), 290); }, dur);
+  }
+
+  // Traduce errores técnicos de Supabase a mensajes amigables
+  function friendlyError(msg) {
+    if (!msg) return 'Error desconocido';
+    if (msg.includes('unique') || msg.includes('duplicate'))   return 'Ya existe un registro con esos datos';
+    if (msg.includes('foreign key') || msg.includes('fkey'))   return 'El registro está vinculado a otros datos';
+    if (msg.includes('not null') || msg.includes('violates'))  return 'Faltan campos obligatorios';
+    if (msg.includes('JWT') || msg.includes('session'))        return 'Sesión expirada, por favor reingresá';
+    if (msg.includes('network') || msg.includes('fetch'))      return 'Error de conexión, verificá tu internet';
+    if (msg.includes('timeout'))                               return 'La operación tardó demasiado, intentá de nuevo';
+    return msg; // fallback: mostrar el mensaje original
   }
 
   function fmtDate(s) {
@@ -1222,7 +1236,7 @@
         });
         hideSpinner();
         $('btnConfirmarAsignar').disabled = false;
-        if (error) { toast('Error: ' + error.message, 'error'); return; }
+        if (error) { toast(friendlyError(error.message), 'error'); return; }
         if (res && res.ok === false) { toast(res.msg || 'No se pudo asignar.', 'error'); return; }
         const nombre = usuarioId
           ? ($('asignar-select').options[$('asignar-select').selectedIndex]?.textContent || 'el usuario')
@@ -1251,7 +1265,7 @@
         if (!ES_ADMIN && USER_ID) _q1 = _q1.eq('asignado_a', USER_ID);
         const { data, error } = await _q1.limit(50);
         hideSpinner();
-        if (error) { setStatus('Error: ' + error.message, '#e0362a'); toast(error.message, 'error'); return; }
+        if (error) { setStatus('Error: ' + error.message, '#e0362a'); toast(friendlyError(error.message), 'error'); return; }
         const filas = data.map(expToFila);
         totalRegistros = filas.length;
         if (!_cabecera) dibujarCabecera(['NUMERO','CARATULA','JUZGADO','TIPO','LLAMAMIENTO','VENCIMIENTO','CANCELACION','SIN EFECTO','OBSERVACION']);
@@ -1272,7 +1286,7 @@
         if (!ES_ADMIN && USER_ID) _q2 = _q2.eq('asignado_a', USER_ID);
         const { data, error } = await _q2.limit(5000);
         hideSpinner(); $('btnVerTodos').disabled = false;
-        if (error) { setStatus('Error', '#e0362a'); toast(error.message, 'error'); return; }
+        if (error) { setStatus('Error', '#e0362a'); toast(friendlyError(error.message), 'error'); return; }
         const filas = data.map(expToFila);
         dibujarFilas(filas);
         setStatus(`${filas.length} registros · Llamamiento ↓`, '#1a9e6b');
@@ -1335,7 +1349,7 @@
         if (filtros.rangoHasta) q = q.lte(col, filtros.rangoHasta);
         const { data, error } = await q;
         hideSpinner();
-        if (error) { setStatus('Error', '#e0362a'); toast(error.message, 'error'); return; }
+        if (error) { setStatus('Error', '#e0362a'); toast(friendlyError(error.message), 'error'); return; }
         const filas = (data || []).map(expToFila);
         dibujarFilas(filas);
         setStatus(`${filas.length} resultado(s) · Llamamiento ↓`, filas.length ? '#1a9e6b' : '#94a3b8');
@@ -1402,6 +1416,8 @@
     const inpSe = $('inp-sin-efecto');
     if (inpSe) inpSe.value = fmtDate(datos[7]);
     form.observacion.value = datos[8] || '';
+    // Cargar fecha_vencimiento actual (readonly — se recalcula al cambiar llamamiento/tipo/juzgado)
+    $('inp-vencimiento').value = fmtDate(datos[5]);
     // Mostrar campo asignación (solo admin) y cargar opciones
     // asignación se gestiona desde el botón dedicado en tabla
     $('modalIconWrap').className = 'modal-icon-wrap edit';
@@ -1416,7 +1432,14 @@
     setTimeout(() => $('inp-caratula').focus(), 260);
   }
 
-  function cerrarModalForm() { $('modalForm').classList.remove('open'); editandoFilaId = null; }
+  function cerrarModalForm() {
+    $('modalForm').classList.remove('open');
+    editandoFilaId = null;
+    $('formCarga').reset();
+    $('inp-vencimiento').value = '';
+    $('calcBadge').classList.remove('visible');
+    document.querySelectorAll('#formCarga .invalid').forEach(el => el.classList.remove('invalid'));
+  }
 
   /* ── Cálculo automático (ahora incluye juzgado) ── */
   let _calcTimer = null;
@@ -1461,6 +1484,14 @@
     if (!ok) { toast('Completá los campos obligatorios (*)', 'error'); return; }
     const numVal = $('inp-numero').value.trim();
     if (!/^\d+$/.test(numVal)) { $('inp-numero').classList.add('invalid'); toast('El número de expediente debe ser solo dígitos', 'error'); return; }
+    // Validación cruzada de fechas
+    const llam = $('inp-llamamiento').value;
+    const venc = $('inp-vencimiento').value;
+    const canc = $('inp-cancelacion').value;
+    const se   = $('inp-sin-efecto').value;
+    if (venc && llam && venc < llam) { toast('La fecha de vencimiento no puede ser anterior al llamamiento', 'error'); return; }
+    if (canc && llam && canc < llam) { toast('La fecha de cancelación no puede ser anterior al llamamiento', 'error'); return; }
+    if (se   && llam && se   < llam) { toast('La fecha de Sin Efecto no puede ser anterior al llamamiento', 'error'); return; }
     const btn = $('btnGuardar'); btn.disabled = true; showSpinner();
     const data = Object.fromEntries(new FormData($('formCarga')));
     const onOk  = res => { hideSpinner(); btn.disabled = false; if (!res.ok) { toast(res.msg, 'error'); return; } toast(res.msg, 'success'); cerrarModalForm(); refreshTabla(); };
@@ -1486,7 +1517,7 @@
             p_fecha_sin_efecto:  (data['inp-sin-efecto']  || data.sin_efecto  || null) || null,
             p_observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null,
           });
-          if (error) { onErr({ message: error.message }); return; }
+          if (error) { onErr({ message: friendlyError(error.message) }); return; }
           if (res?.ok === false) { onErr({ message: res.msg || 'No se pudo actualizar.' }); return; }
           onOk({ ok: true, msg: 'Expediente actualizado.' });
 
@@ -1504,7 +1535,7 @@
             p_fecha_sin_efecto:  (data['inp-sin-efecto']  || data.sin_efecto  || null) || null,
             p_observacion:       (data['inp-observacion'] || data.observacion || '').trim() || null,
           });
-          if (error) { onErr({ message: error.message }); return; }
+          if (error) { onErr({ message: friendlyError(error.message) }); return; }
           if (res?.ok === false) { onErr({ message: res.msg || 'No se pudo guardar.' }); return; }
           onOk({ ok: true, msg: 'Expediente guardado.' });
         }
@@ -1541,7 +1572,7 @@
           // RPC SECURITY DEFINER — bypassea RLS igual que asignar_expediente
           const { data: res, error } = await db.rpc('eliminar_expediente', { p_id: pending.id });
           hideSpinner();
-          if (error) { toast(error.message, 'error'); return; }
+          if (error) { toast(friendlyError(error.message), 'error'); return; }
           if (res?.ok === false) { toast(res.msg || 'No se pudo eliminar.', 'error'); return; }
           toast('Expediente eliminado.', 'success'); refreshTabla();
         } catch(e) { hideSpinner(); toast(e.message, 'error'); }
@@ -1553,7 +1584,7 @@
           const tabla = pending.contexto === 'INHABILIDADES' ? 'dias_inhabiles' : 'licencias_juez';
           const { error } = await db.from(tabla).delete().eq('id', pending.id);
           hideSpinner();
-          if (error) { toast(error.message, 'error'); return; }
+          if (error) { toast(friendlyError(error.message), 'error'); return; }
           const { data: rc } = await db.rpc('recalcular_todos_vencimientos', { p_motivo: 'Eliminación exclusión' });
           const count = rc?.total_actualizados || 0;
           toast(`Eliminado. (${count} recalculados)`, 'success');
@@ -1565,7 +1596,7 @@
       // PLAZOS u otras tablas sin recálculo
       (async () => {
         const { error } = await db.from('tipos_resolucion').update({ activo: false }).eq('id', pending.id);
-        if (error) toast(error.message, 'error');
+        if (error) toast(friendlyError(error.message), 'error');
         else { toast('Plazo desactivado.', 'success'); cargarTablaAux(pending.contexto); }
       })();
     }
@@ -1658,7 +1689,13 @@
             btnE.addEventListener('click', () => abrirModalAux(hoja, 'editar', idFila, fila));
             const btnD = document.createElement('button'); btnD.className = 'btn-icon del'; btnD.title = 'Eliminar';
             btnD.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 4h9M5 4V3h3v1M3 4l.7 7.5h5.6L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5v3M7.5 6.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
-            btnD.addEventListener('click', () => confirmarEliminar(idFila, hoja));
+            btnD.addEventListener('click', () => {
+              // Etiqueta descriptiva según el tipo de tabla
+              const etiq = hoja === 'PLAZOS'
+                ? (fila[1] || 'este plazo')   // nombre del tipo
+                : (fila[0] || 'este registro'); // fecha
+              confirmarEliminar(idFila, hoja, etiq);
+            });
             divB.appendChild(btnE); divB.appendChild(btnD); tdAcc.appendChild(divB); tr.appendChild(tdAcc);
             frag.appendChild(tr);
           });
@@ -1767,9 +1804,22 @@
       };
       if (auxModo === 'editar') {
         obj.filaId = auxFilaId;
-        db.from(obj.tipoHoja === 'INHABILIDADES' ? 'dias_inhabiles' : 'licencias_juez')
-          .update({ fecha: obj.fecha, motivo: obj.motivo || null }).eq('id', obj.filaId)
-          .then(({ error }) => error ? onErr({message:error.message}) : db.rpc('recalcular_todos_vencimientos',{p_motivo:'Edición exclusión'}).then(({data:r})=>onOk({ok:true,msg:'Actualizado.',recalculados:r?.total_actualizados||0,filaIds:r?.expedientes_ids||[]})));
+        (async () => {
+          try {
+            const tabla = obj.tipoHoja === 'INHABILIDADES' ? 'dias_inhabiles' : 'licencias_juez';
+            let patch = { fecha: obj.fecha, motivo: obj.motivo || null };
+            if (obj.tipoHoja === 'LICENCIAS' && obj.juez) {
+              const pref2 = (obj.juez).match(/(\d+F)/i)?.[1]?.toUpperCase() || '';
+              const { data: jR } = await db.from('juzgados').select('id').eq('prefijo', pref2).maybeSingle();
+              if (!jR) { onErr({message:'Juzgado no encontrado: ' + obj.juez}); return; }
+              patch.juzgado_id = jR.id;
+            }
+            const { error: updErr } = await db.from(tabla).update(patch).eq('id', obj.filaId);
+            if (updErr) { onErr({message: friendlyError(updErr.message)}); return; }
+            const { data: r } = await db.rpc('recalcular_todos_vencimientos', { p_motivo: 'Edición exclusión' });
+            onOk({ ok: true, msg: 'Actualizado.', recalculados: r?.total_actualizados || 0, filaIds: r?.expedientes_ids || [] });
+          } catch(e) { onErr({message: e.message}); }
+        })();
       } else {
         (async () => {
           let error;
@@ -1781,7 +1831,7 @@
           } else {
             ({error} = await db.from('dias_inhabiles').insert({fecha:obj.fecha,motivo:obj.motivo||null}));
           }
-          if (error) { onErr({message:error.message}); return; }
+          if (error) { onErr({message: friendlyError(error.message)}); return; }
           const {data:r} = await db.rpc('recalcular_todos_vencimientos',{p_motivo:'Nueva exclusión'});
           onOk({ok:true,msg:'Guardado.',recalculados:r?.total_actualizados||0,filaIds:r?.expedientes_ids||[]});
         })();
@@ -1790,10 +1840,10 @@
       // PLAZOS
       if (auxModo === 'editar') {
         db.from('tipos_resolucion').update({nombre:filaValues[1],dias_habiles:parseInt(filaValues[2])||0,notas:filaValues[3]||null}).eq('id',auxFilaId)
-          .then(({error})=>error?onErr({message:error.message}):onOk({ok:true,msg:'Plazo actualizado.'}));
+          .then(({error})=>error?onErr({message: friendlyError(error.message)}):onOk({ok:true,msg:'Plazo actualizado.'}));
       } else {
         db.from('tipos_resolucion').insert({nombre:filaValues[1],dias_habiles:parseInt(filaValues[2])||0,notas:filaValues[3]||null})
-          .then(({error})=>error?onErr({message:error.message}):onOk({ok:true,msg:'Plazo guardado.'}));
+          .then(({error})=>error?onErr({message: friendlyError(error.message)}):onOk({ok:true,msg:'Plazo guardado.'}));
       }
     }
   }
@@ -1844,7 +1894,7 @@
           p_fecha: fecha
         });
         hideSpinner();
-        if (error) { toast('Error al guardar: ' + error.message, 'error'); return; }
+        if (error) { toast(friendlyError(error.message), 'error'); return; }
         if (res?.ok === false) { toast(res.msg || 'No se pudo cerrar.', 'error'); return; }
         const label = tipo === 'sin_efecto' ? 'Sin Efecto' : 'Cancelación';
         toast('✓ ' + label + ' registrada correctamente.', 'success');
@@ -1928,13 +1978,17 @@
   function toggleUsuarioActivo(userId, activo) {
     (async () => {
       const { error } = await db.from('perfiles').update({ activo: !activo }).eq('id', userId);
-      if (error) toast(error.message, 'error');
+      if (error) toast(friendlyError(error.message), 'error');
       else { toast(!activo ? 'Usuario activado.' : 'Usuario desactivado.', 'success'); cargarUsuarios(); }
     })();
   }
 
   function abrirModalCrearUsuario() { $('modalUsuario').classList.add('open'); }
-  function cerrarModalUsuario() { $('modalUsuario').classList.remove('open'); }
+  function cerrarModalUsuario() {
+    $('modalUsuario').classList.remove('open');
+    ['u-nombre','u-email','u-pass'].forEach(id => { const el = $(id); if(el) el.value = ''; });
+    document.querySelectorAll('#formUsuario .invalid').forEach(el => el.classList.remove('invalid'));
+  }
 
   function submitCrearUsuario() {
     const nombre = $('u-nombre').value.trim();

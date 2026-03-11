@@ -749,7 +749,16 @@
             <option value="admin">👑 Admin (acceso completo)</option>
           </select>
         </div>
-        <div class="form-field fg-6"><label>Contraseña temporal <span class="req">*</span></label><input id="u-pass" type="password" placeholder="Mín. 8 caracteres"></div>
+        <div class="form-field fg-6">
+          <label>Contraseña temporal <span class="req">*</span></label>
+          <div style="position:relative;display:flex;align-items:center">
+            <input id="u-pass" type="password" placeholder="Mín. 8 caracteres" style="width:100%;padding-right:36px">
+            <button type="button" title="Mostrar/ocultar" onclick="const i=$('u-pass');i.type=i.type==='password'?'text':'password';this.style.opacity=i.type==='text'?'1':'.45'"
+              style="position:absolute;right:8px;background:none;border:none;cursor:pointer;padding:2px;opacity:.45;color:var(--text2)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+            </button>
+          </div>
+        </div>
         <div class="form-field fg-12 section-label" style="margin-top:4px">Nota</div>
         <div class="fg-12" style="font-size:.78rem;color:var(--text3);padding:8px 12px;background:var(--accent-s);border-radius:8px;line-height:1.5">
           ℹ El usuario podrá ver solo los expedientes que le asignes. Podés asignar expedientes desde el botón <strong>Asignar</strong> en la tabla principal.
@@ -801,21 +810,33 @@
     if (!perfil || !perfil.activo) {
       await db.auth.signOut(); window.location.href = 'Index.html'; return;
     }
-    // Asignar directamente — no depende de sessionStorage
     ROL       = perfil.rol;
     USER_NAME = perfil.nombre_completo;
     USER_ID   = session.user.id;
     ES_ADMIN  = ROL === 'admin';
-    // También guardar en sessionStorage para compatibilidad
     sessionStorage.setItem('userRol',  ROL);
     sessionStorage.setItem('userName', USER_NAME);
     sessionStorage.setItem('userId',   USER_ID);
-    // Arrancar la app recién cuando la sesión está confirmada
     inicializarRol();
     cargarDatosIniciales();
     cargarListaPlazos();
     cargarListaJuzgados();
   })();
+
+  // ── Manejo de sesión expirada / cierre desde otro tab ─────────────
+  // El SDK refresca el JWT automáticamente. Si la sesión se cierra
+  // (expiró o el usuario cerró en otro tab), redirige al login.
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
+      sessionStorage.clear();
+      window.location.href = 'Index.html';
+    }
+    if (event === 'TOKEN_REFRESHED' && session) {
+      // Token renovado automáticamente — actualizar USER_ID por si cambió
+      USER_ID = session.user.id;
+      sessionStorage.setItem('userId', USER_ID);
+    }
+  });
 
   // Tablas aux
   let auxHoja   = null;
@@ -823,6 +844,8 @@
   let auxFilaId = null;
 
   const $ = id => document.getElementById(id);
+  // Escapa HTML para usar con innerHTML con datos que vienen de la DB
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   /* ══════ Inicialización de rol ══════ */
   function inicializarRol() {
@@ -1233,7 +1256,8 @@
         totalRegistros = filas.length;
         if (!_cabecera) dibujarCabecera(['NUMERO','CARATULA','JUZGADO','TIPO','LLAMAMIENTO','VENCIMIENTO','CANCELACION','SIN EFECTO','OBSERVACION']);
         dibujarFilas(filas);
-        setStatus(`${filas.length} registros · Llamamiento ↓`, '#1a9e6b');
+        const hayMas = filas.length === 50;
+        setStatus(`${filas.length} registros${hayMas ? ' (mostrando los últimos 50)' : ''} · Llamamiento ↓`, '#1a9e6b');
         actualizarFooter(filas.length, filas.length, false);
       } catch(e) { hideSpinner(); setStatus('Error', '#e0362a'); toast(e.message, 'error'); }
     })();
@@ -1298,7 +1322,11 @@
         let q = db.from('v_expedientes').select('*').order('fecha_llamamiento', { ascending: false });
         if (!ES_ADMIN && USER_ID) q = q.eq('asignado_a', USER_ID);
         q = q.limit(5000);
-        if (filtros.texto) q = q.or(`numero.ilike.%${filtros.texto}%,caratula.ilike.%${filtros.texto}%`);
+        if (filtros.texto) {
+          // Escapar wildcards de SQL para búsqueda literal
+          const txt = filtros.texto.replace(/[%_\\]/g, c => '\\' + c);
+          q = q.or(`numero.ilike.%${txt}%,caratula.ilike.%${txt}%`);
+        }
         if (filtros.llamamiento) q = q.eq('fecha_llamamiento', filtros.llamamiento);
         if (filtros.cancelacion) q = q.eq('fecha_cancelacion', filtros.cancelacion);
         const colMap = { llamamiento:'fecha_llamamiento', vencimiento:'fecha_vencimiento', cancelacion:'fecha_cancelacion' };
@@ -1319,6 +1347,8 @@
 
   function limpiarFiltros() {
     ['busqTexto','busqLlam','busqCanc','rangoDesde','rangoHasta'].forEach(id => $(id).value = '');
+    _modoPaginacion = 'parcial';
+    cargarDatosIniciales();
     $('rangoCol').value = 'llamamiento';
     cargarDatosIniciales();
   }
@@ -1429,6 +1459,8 @@
       else el.classList.remove('invalid');
     });
     if (!ok) { toast('Completá los campos obligatorios (*)', 'error'); return; }
+    const numVal = $('inp-numero').value.trim();
+    if (!/^\d+$/.test(numVal)) { $('inp-numero').classList.add('invalid'); toast('El número de expediente debe ser solo dígitos', 'error'); return; }
     const btn = $('btnGuardar'); btn.disabled = true; showSpinner();
     const data = Object.fromEntries(new FormData($('formCarga')));
     const onOk  = res => { hideSpinner(); btn.disabled = false; if (!res.ok) { toast(res.msg, 'error'); return; } toast(res.msg, 'success'); cerrarModalForm(); refreshTabla(); };
@@ -1864,20 +1896,27 @@
           const activoBadge = u.activo
             ? `<span style="background:#d1fae5;color:#065f46;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px">✓ Activo</span>`
             : `<span style="background:#fee2e2;color:#991b1b;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:99px">✗ Inactivo</span>`;
-          tr.innerHTML = `
-            <td style="padding:9px 12px;font-size:.83rem;font-weight:600;color:var(--text)">${u.nombre}</td>
-            <td style="padding:9px 12px;font-size:.83rem;color:var(--text2)">${u.email}</td>
-            <td style="padding:9px 12px">${rolBadge}</td>
-            <td style="padding:9px 12px">${activoBadge}</td>
-            <td style="padding:9px 12px;font-size:.82rem;color:var(--text2)">${u.expedientes_asignados} (${u.expedientes_vencidos} venc.)</td>
-            <td style="padding:9px 12px;font-size:.75rem;color:var(--text3)">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-AR') : 'Nunca'}</td>
-            <td style="padding:9px 12px">
-              <div style="display:flex;gap:5px">
-                <button class="btn-icon edit" title="Cambiar estado" onclick="toggleUsuarioActivo('${u.id}', ${u.activo})" style="width:26px;height:26px;border-radius:6px">
-                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5C1 3.02 3.02 1 5.5 1S10 3.02 10 5.5 7.98 10 5.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M3 5.5l2 2 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-              </div>
-            </td>`;
+          // XSS-safe: usar textContent para datos que vienen de la DB
+          const mkTd = (style) => { const td = document.createElement('td'); td.style.cssText = style; return td; };
+          const tdNombre = mkTd('padding:9px 12px;font-size:.83rem;font-weight:600;color:var(--text)');
+          tdNombre.textContent = u.nombre;
+          const tdEmail = mkTd('padding:9px 12px;font-size:.83rem;color:var(--text2)');
+          tdEmail.textContent = u.email;
+          const tdRol = mkTd('padding:9px 12px'); tdRol.innerHTML = rolBadge;
+          const tdActivo = mkTd('padding:9px 12px'); tdActivo.innerHTML = activoBadge;
+          const tdExp = mkTd('padding:9px 12px;font-size:.82rem;color:var(--text2)');
+          tdExp.textContent = `${u.expedientes_asignados} (${u.expedientes_vencidos} venc.)`;
+          const tdAcceso = mkTd('padding:9px 12px;font-size:.75rem;color:var(--text3)');
+          tdAcceso.textContent = u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-AR') : 'Nunca';
+          const tdAcc = mkTd('padding:9px 12px');
+          const divAcc = document.createElement('div'); divAcc.style.cssText = 'display:flex;gap:5px';
+          const btnToggle = document.createElement('button');
+          btnToggle.className = 'btn-icon edit'; btnToggle.title = 'Cambiar estado';
+          btnToggle.style.cssText = 'width:26px;height:26px;border-radius:6px';
+          btnToggle.innerHTML = '<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 5.5C1 3.02 3.02 1 5.5 1S10 3.02 10 5.5 7.98 10 5.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M3 5.5l2 2 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          btnToggle.addEventListener('click', () => toggleUsuarioActivo(u.id, u.activo));
+          divAcc.appendChild(btnToggle); tdAcc.appendChild(divAcc);
+          [tdNombre, tdEmail, tdRol, tdActivo, tdExp, tdAcceso, tdAcc].forEach(td => tr.appendChild(td));
           frag.appendChild(tr);
         });
         tbody.innerHTML = '';
@@ -1903,21 +1942,46 @@
     const rol    = $('u-rol').value;
     const pass   = $('u-pass').value;
     if (!nombre || !email || !pass) { toast('Completá todos los campos', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Email inválido', 'error'); return; }
+    if (pass.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
     if (pass.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
     $('btnGuardarUsuario').disabled = true;
     (async () => {
       try {
+        // 1. Crear usuario en auth.users
         const respRaw = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password: pass, data: { nombre_completo: nombre, rol } })
         });
         const respJson = await respRaw.json();
-        $('btnGuardarUsuario').disabled = false;
         if (!respRaw.ok || respJson.error || respJson.error_description) {
+          $('btnGuardarUsuario').disabled = false;
           toast(respJson.error_description || respJson.msg || respJson.error || 'Error al crear usuario', 'error');
           return;
         }
+        const newUserId = respJson.user?.id || respJson.id;
+
+        // 2. Garantizar que exista el perfil (el trigger puede tardar o fallar)
+        if (newUserId) {
+          // Esperar brevemente para dar chance al trigger automático
+          await new Promise(r => setTimeout(r, 800));
+          const { data: perfilExiste } = await db.from('perfiles').select('id').eq('id', newUserId).maybeSingle();
+          if (!perfilExiste) {
+            // El trigger no corrió — crear el perfil manualmente
+            await db.from('perfiles').insert({
+              id:              newUserId,
+              nombre_completo: nombre,
+              rol:             rol,
+              activo:          true
+            });
+          } else if (perfilExiste && rol) {
+            // El trigger corrió pero puede no haber seteado el rol correcto
+            await db.from('perfiles').update({ rol, nombre_completo: nombre }).eq('id', newUserId);
+          }
+        }
+
+        $('btnGuardarUsuario').disabled = false;
         toast(`Usuario "${nombre}" creado exitosamente`, 'success');
         cerrarModalUsuario();
         cargarUsuarios();

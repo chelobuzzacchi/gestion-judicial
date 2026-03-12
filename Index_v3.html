@@ -515,7 +515,7 @@
       </div>
       <div class="table-card">
         <div class="table-scroll" style="max-height:50vh">
-          <table style="table-layout:fixed"><colgroup><col style="width:15%"><col style="width:45%"><col style="width:30%"><col style="width:10%"></colgroup>
+          <table style="table-layout:fixed"><colgroup><col style="width:13%"><col style="width:13%"><col style="width:32%"><col style="width:30%"><col style="width:12%"></colgroup>
             <thead id="thead-licencias"></thead><tbody id="tbody-licencias"></tbody>
           </table>
         </div>
@@ -1688,8 +1688,14 @@
             fila.slice(0,-1).forEach(c => {
               const td = document.createElement('td');
               if (typeof c === 'string' && c.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                // Fecha → chip
                 const chip = document.createElement('span'); chip.className = 'date-chip fecha'; chip.textContent = c; td.appendChild(chip);
-              } else { td.textContent = c ?? ''; }
+              } else if (typeof c === 'string' && /^\d+F_/.test(c)) {
+                // Juez en formato "10F_Guerrero" → mostrar "10F · Guerrero"
+                td.textContent = c.replace('_', ' · ');
+              } else {
+                td.textContent = c ?? '';
+              }
               tr.appendChild(td);
             });
             const tdAcc = document.createElement('td');

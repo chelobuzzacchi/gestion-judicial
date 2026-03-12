@@ -1633,10 +1633,11 @@
       btnClass: 'teal-mode',
       recalcula: true,
       campos: [
-        { name: 'fecha',  label: 'Fecha',  type: 'date', req: true,  span: 6 },
-        { name: 'motivo', label: 'Motivo', type: 'text', placeholder: 'Ej: Vacaciones', req: true, span: 6 },
+        { name: 'fecha',       label: 'Fecha inicio', type: 'date', req: true,  span: 4 },
+        { name: 'fecha_hasta', label: 'Fecha fin (opcional)', type: 'date', req: false, span: 4 },
+        { name: 'motivo',      label: 'Motivo',       type: 'text', placeholder: 'Ej: Vacaciones', req: false, span: 4 },
         // El campo "juez" se renderiza como select especial (ver abajo)
-        { name: 'juez',   label: 'Juez',   type: 'select', req: true, span: 12,
+        { name: 'juez',        label: 'Juez',         type: 'select', req: true, span: 12,
           opciones: [] // Se llena en cargarListaJuzgados()
         }
       ]
@@ -1656,8 +1657,17 @@
           const { data } = await db.from('dias_inhabiles').select('id,fecha,motivo').order('fecha',{ascending:false});
           res = { cabecera:['Fecha','Motivo'], filas:(data||[]).map(r=>[isoToDisp(r.fecha),r.motivo||'',r.id]) };
         } else {
-          const { data } = await db.from('licencias_juez').select('id,fecha,motivo,juzgados(prefijo,juez_nombre)').order('fecha',{ascending:false});
-          res = { cabecera:['Fecha','Motivo','Juez'], filas:(data||[]).map(r=>[isoToDisp(r.fecha),r.motivo||'',r.juzgados?r.juzgados.prefijo+' · '+r.juzgados.juez_nombre:'',r.id]) };
+          const { data } = await db.from('licencias_juez').select('id,fecha,fecha_hasta,motivo,juzgados(prefijo,juez_nombre)').order('fecha',{ascending:false});
+          res = {
+            cabecera: ['Fecha inicio','Fecha fin','Motivo','Juez'],
+            filas: (data||[]).map(r => [
+              isoToDisp(r.fecha),
+              r.fecha_hasta ? isoToDisp(r.fecha_hasta) : isoToDisp(r.fecha),
+              r.motivo || '',
+              r.juzgados ? r.juzgados.prefijo + '_' + r.juzgados.juez_nombre : '',
+              r.id
+            ])
+          };
         }
       } catch(e) { toast(e.message,'error'); return; }
       if (!res) return;
@@ -1784,6 +1794,17 @@
     });
     if (!ok) { toast('Completá los campos obligatorios', 'error'); return; }
 
+    // Validar rango de fechas en LICENCIAS
+    if (auxHoja === 'LICENCIAS') {
+      const fIni  = $('aux-f0').value;
+      const fFin  = $('aux-f1').value;
+      if (fIni && fFin && fFin < fIni) {
+        $('aux-f1').classList.add('invalid');
+        toast('La fecha fin no puede ser anterior a la fecha inicio', 'error');
+        return;
+      }
+    }
+
     const filaValues = cfg.campos.map((_, i) => $(`aux-f${i}`).value.trim());
     $('btnAuxGuardar').disabled = true;
     const hojaSnap = auxHoja;
@@ -1802,10 +1823,11 @@
 
     if (hojaSnap === 'INHABILIDADES' || hojaSnap === 'LICENCIAS') {
       const obj = {
-        tipoHoja: hojaSnap,
-        fecha:    filaValues[0],
-        motivo:   filaValues[1],
-        juez:     hojaSnap === 'LICENCIAS' ? filaValues[2] : undefined
+        tipoHoja:    hojaSnap,
+        fecha:       filaValues[0],
+        fecha_hasta: hojaSnap === 'LICENCIAS' ? (filaValues[1] || null) : undefined,
+        motivo:      hojaSnap === 'LICENCIAS' ? filaValues[2] : filaValues[1],
+        juez:        hojaSnap === 'LICENCIAS' ? filaValues[3] : undefined
       };
       if (auxModo === 'editar') {
         obj.filaId = auxFilaId;
@@ -1813,6 +1835,7 @@
           try {
             const tabla = obj.tipoHoja === 'INHABILIDADES' ? 'dias_inhabiles' : 'licencias_juez';
             let patch = { fecha: obj.fecha, motivo: obj.motivo || null };
+            if (obj.tipoHoja === 'LICENCIAS') patch.fecha_hasta = obj.fecha_hasta || null;
             if (obj.tipoHoja === 'LICENCIAS' && obj.juez) {
               const pref2 = (obj.juez).match(/(\d+F)/i)?.[1]?.toUpperCase() || '';
               const { data: jR } = await db.from('juzgados').select('id').eq('prefijo', pref2).maybeSingle();
@@ -1832,7 +1855,12 @@
             const pref = (obj.juez||'').match(/(\d+F)/i)?.[1]?.toUpperCase()||'';
             const {data:jRow} = await db.from('juzgados').select('id').eq('prefijo',pref).single();
             if (!jRow) { onErr({message:'Juzgado no encontrado: '+obj.juez}); return; }
-            ({error} = await db.from('licencias_juez').insert({juzgado_id:jRow.id,fecha:obj.fecha,motivo:obj.motivo||null}));
+            ({error} = await db.from('licencias_juez').insert({
+                juzgado_id: jRow.id,
+                fecha:       obj.fecha,
+                fecha_hasta: obj.fecha_hasta || null,
+                motivo:      obj.motivo || null
+              }));
           } else {
             ({error} = await db.from('dias_inhabiles').insert({fecha:obj.fecha,motivo:obj.motivo||null}));
           }
